@@ -2,8 +2,8 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>線上時段預約與費用試算系統</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>線上時段預約與費用試算系統 (含管理員編輯功能)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome 圖示庫 -->
@@ -16,39 +16,37 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style> body { font-family: 'Noto Sans TC', sans-serif; } </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col text-base">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col text-sm sm:text-base">
 
     <!-- 頂部導覽列 -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-            <div class="flex items-center space-x-3.5">
-                <div class="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-100">
-                    <i class="fa-solid fa-cloud-bolt text-2xl"></i>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-100 flex-shrink-0">
+                    <i class="fa-solid fa-cloud-bolt text-xl sm:text-2xl"></i>
                 </div>
                 <div>
-                    <h1 class="font-extrabold text-2xl text-slate-900 leading-tight">時段預約系統</h1>
-                    <p class="text-sm text-slate-500 font-medium">雲端資料同步版</p>
+                    <h1 class="font-extrabold text-lg sm:text-2xl text-slate-900 leading-tight">時段預約系統</h1>
+                    <p class="text-xs sm:text-sm text-slate-500 font-medium">雲端資料同步版</p>
                 </div>
             </div>
 
             <!-- 右側權限與身分切換按鈕區 -->
-            <div id="auth-controls" class="flex items-center space-x-3">
-                <!-- 未登入狀態：只顯示登入按鈕 -->
-                <button id="btn-open-login" onclick="openLoginModal()" class="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-700 hover:text-indigo-600 bg-slate-100 hover:bg-slate-200 transition flex items-center shadow-sm">
-                    <i class="fa-solid fa-lock mr-2"></i>管理員登入
+            <div id="auth-controls" class="flex items-center space-x-2">
+                <button id="btn-open-login" onclick="openLoginModal()" class="px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-700 hover:text-indigo-600 bg-slate-100 hover:bg-slate-200 transition flex items-center shadow-sm">
+                    <i class="fa-solid fa-lock mr-1.5"></i>管理員登入
                 </button>
 
-                <!-- 已登入狀態：顯示身分切換列與登出按鈕（預設隱藏） -->
-                <div id="admin-logged-controls" class="hidden flex items-center space-x-3">
-                    <div class="flex items-center bg-slate-100 p-1.5 rounded-xl border border-slate-200">
-                        <button id="btn-role-user" onclick="switchRole('user')" class="px-4 py-2 rounded-lg text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm">
-                            <i class="fa-solid fa-user mr-1.5"></i>使用者端
+                <div id="admin-logged-controls" class="hidden flex items-center space-x-1.5 sm:space-x-3">
+                    <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                        <button id="btn-role-user" onclick="switchRole('user')" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm">
+                            <i class="fa-solid fa-user mr-1"></i>使用者
                         </button>
-                        <button id="btn-role-admin" onclick="switchRole('admin')" class="px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900 transition-all">
-                            <i class="fa-solid fa-user-shield mr-1.5"></i>管理後台
+                        <button id="btn-role-admin" onclick="switchRole('admin')" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 transition-all">
+                            <i class="fa-solid fa-user-shield mr-1"></i>後台
                         </button>
                     </div>
-                    <button onclick="handleLogout()" class="px-4 py-2 rounded-xl text-sm font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 transition">
+                    <button onclick="handleLogout()" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 transition whitespace-nowrap">
                         <i class="fa-solid fa-right-from-bracket mr-1"></i>登出
                     </button>
                 </div>
@@ -57,137 +55,134 @@
     </header>
 
     <!-- 主要內容區 -->
-    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+    <main class="flex-grow max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-10 w-full">
 
         <!-- ======================= 1. 一般使用者介面 ======================= -->
-        <div id="view-user" class="space-y-8">
-            <div class="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
-                <div class="flex items-center space-x-4">
-                    <div class="w-14 h-14 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl font-bold">
+        <div id="view-user" class="space-y-6 sm:space-y-8">
+            <div class="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="flex items-center space-x-3 sm:space-x-4">
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl sm:text-2xl font-bold flex-shrink-0">
                         <i class="fa-regular fa-circle-user"></i>
                     </div>
-                    <div>
-                        <label class="text-sm text-slate-500 font-medium">當前預約人姓名</label>
-                        <input type="text" id="user-name-input" value="王小明" class="block font-extrabold text-slate-900 text-xl focus:outline-none border-b-2 border-dashed border-slate-300 focus:border-indigo-600 bg-transparent py-0.5" onchange="renderUserView()">
+                    <div class="flex-grow">
+                        <label class="text-xs sm:text-sm text-slate-500 font-medium">當前預約人姓名</label>
+                        <input type="text" id="user-name-input" value="" class="w-full font-extrabold text-slate-900 text-lg sm:text-xl focus:outline-none border-b-2 border-dashed border-slate-300 focus:border-indigo-600 bg-transparent py-0.5" onchange="renderUserView()">
                     </div>
                 </div>
 
-                <div class="flex items-center space-x-3">
-                    <label class="text-base font-bold text-slate-700">檢視月份：</label>
-                    <input type="month" id="user-month-filter" class="text-base bg-slate-50 border border-slate-300 rounded-xl px-4 py-2 text-slate-800 focus:outline-none focus:border-indigo-600 font-medium" onchange="renderUserView()">
+                <div class="flex items-center justify-between sm:justify-end space-x-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                    <label class="text-xs sm:text-base font-bold text-slate-700 whitespace-nowrap">檢視月份：</label>
+                    <input type="month" id="user-month-filter" class="text-xs sm:text-base bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 text-slate-800 focus:outline-none focus:border-indigo-600 font-medium" onchange="renderUserView()">
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
                 <!-- 左側 2 欄：可預約時段清單 -->
-                <div class="lg:col-span-2 space-y-5">
-                    <div class="flex items-center justify-between flex-wrap gap-2">
-                        <h2 class="font-extrabold text-slate-900 text-xl flex items-center">
-                            <i class="fa-solid fa-clock mr-2.5 text-indigo-600"></i>開放預約時段（僅顯示未過期）
+                <div class="lg:col-span-2 space-y-4 sm:space-y-5">
+                    <div class="space-y-2">
+                        <h2 class="font-extrabold text-slate-900 text-lg sm:text-xl flex items-center">
+                            <i class="fa-solid fa-clock mr-2 text-indigo-600"></i>開放預約時段（僅顯示未過期）
                         </h2>
-
-                        <!-- 3 種狀態統計標籤容器 -->
-                        <div id="user-available-count" class="flex items-center space-x-2 text-xs sm:text-sm font-bold flex-wrap gap-1.5">
-                            <span class="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full">載入中...</span>
+                        <div id="user-available-count" class="flex flex-wrap gap-1.5 text-xs sm:text-sm font-bold">
+                            <span class="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full">連線中...</span>
                         </div>
                     </div>
 
-                    <div id="user-slot-list" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+                    <div id="user-slot-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5"></div>
                 </div>
 
                 <!-- 右側 1 欄：當月帳單試算 -->
                 <div class="lg:col-span-1 space-y-6">
-                    <div class="bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white p-7 rounded-2xl shadow-xl">
-                        <span class="text-sm text-indigo-300 font-semibold tracking-wide">當月費用試算 (應繳金額)</span>
-                        <div class="flex items-baseline mt-3 mb-5">
-                            <span class="text-lg font-normal text-slate-300 mr-1.5">NT$</span>
-                            <h3 id="user-total-fee" class="text-5xl font-black tracking-tight text-white">0</h3>
+                    <div class="bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white p-6 sm:p-7 rounded-2xl shadow-xl">
+                        <span class="text-xs sm:text-sm text-indigo-300 font-semibold tracking-wide">當月費用試算 (應繳金額)</span>
+                        <div class="flex items-baseline mt-2 mb-4 sm:mt-3 sm:mb-5">
+                            <span class="text-base sm:text-lg font-normal text-slate-300 mr-1.5">NT$</span>
+                            <h3 id="user-total-fee" class="text-4xl sm:text-5xl font-black tracking-tight text-white">0</h3>
                         </div>
-                        <div class="text-sm text-slate-300 border-t border-white/15 pt-4 flex justify-between items-center">
+                        <div class="text-xs sm:text-sm text-slate-300 border-t border-white/15 pt-3 sm:pt-4 flex justify-between items-center">
                             <span>當月已報名場次：</span>
-                            <span id="user-booked-count" class="font-extrabold text-lg text-emerald-400">0 場</span>
+                            <span id="user-booked-count" class="font-extrabold text-base sm:text-lg text-emerald-400">0 場</span>
                         </div>
                     </div>
 
-                    <!-- 已預約明細 -->
-                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                        <h3 class="font-bold text-slate-900 text-base flex items-center justify-between pb-2 border-b border-slate-100">
+                    <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                        <h3 class="font-bold text-slate-900 text-sm sm:text-base flex items-center justify-between pb-2 border-b border-slate-100">
                             <span>我的已預約明細</span>
                             <i class="fa-solid fa-receipt text-slate-400"></i>
                         </h3>
-                        <div id="user-booked-list" class="space-y-3.5 divide-y divide-slate-100"></div>
+                        <div id="user-booked-list" class="space-y-3 divide-y divide-slate-100"></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ======================= 2. 管理員介面 (登入後可見) ======================= -->
-        <div id="view-admin" class="hidden space-y-8">
-            <div class="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-                <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+        <!-- ======================= 2. 管理員介面 ======================= -->
+        <div id="view-admin" class="hidden space-y-6 sm:space-y-8">
+            <div class="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4 gap-2">
                     <div>
-                        <h2 class="font-extrabold text-slate-900 text-lg flex items-center">
-                            <i class="fa-solid fa-plus-circle text-indigo-600 mr-2.5"></i>開放新時段設定
+                        <h2 class="font-extrabold text-slate-900 text-base sm:text-lg flex items-center">
+                            <i class="fa-solid fa-plus-circle text-indigo-600 mr-2"></i>開放新時段設定
                         </h2>
-                        <p class="text-sm text-slate-500 mt-1">先設定起訖時間，再多選日期批次儲存</p>
+                        <p class="text-xs sm:text-sm text-slate-500 mt-0.5">先設定起訖時間，再多選日期批次儲存至雲端</p>
                     </div>
-                    <span class="text-xs text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full font-bold">5 分鐘單位</span>
+                    <span class="text-xs text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full font-bold self-start sm:self-auto">5 分鐘單位</span>
                 </div>
 
-                <form id="admin-create-form" onsubmit="handleCreateSlots(event)" class="space-y-6">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <form id="admin-create-form" onsubmit="handleCreateSlots(event)" class="space-y-5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <!-- 開始時間 -->
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2">開始時間</label>
-                            <div class="flex items-center space-x-2 bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus-within:border-indigo-600 focus-within:bg-white transition">
-                                <select id="admin-start-hour" class="bg-transparent text-base text-slate-800 font-bold focus:outline-none w-full text-center cursor-pointer" onchange="autoAdjustEndTime()"></select>
-                                <span class="font-black text-slate-400 text-lg select-none">:</span>
-                                <select id="admin-start-min" class="bg-transparent text-base text-slate-800 font-bold focus:outline-none w-full text-center cursor-pointer" onchange="autoAdjustEndTime()"></select>
+                            <label class="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">開始時間</label>
+                            <div class="flex items-center space-x-2 bg-slate-50 border border-slate-300 rounded-xl p-2 sm:p-2.5 focus-within:border-indigo-600 focus-within:bg-white transition">
+                                <select id="admin-start-hour" class="bg-transparent text-sm sm:text-base text-slate-800 font-bold focus:outline-none w-full text-center cursor-pointer" onchange="autoAdjustEndTime()"></select>
+                                <span class="font-black text-slate-400 text-base sm:text-lg select-none">:</span>
+                                <select id="admin-start-min" class="bg-transparent text-sm sm:text-base text-slate-800 font-bold focus:outline-none w-full text-center cursor-pointer" onchange="autoAdjustEndTime()"></select>
                             </div>
                         </div>
 
                         <!-- 結束時間 -->
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2">結束時間</label>
-                            <div class="flex items-center space-x-2 bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus-within:border-indigo-600 focus-within:bg-white transition">
-                                <select id="admin-end-hour" class="bg-transparent text-base text-slate-800 font-bold focus:outline-none w-full text-center cursor-pointer"></select>
-                                <span class="font-black text-slate-400 text-lg select-none">:</span>
-                                <select id="admin-end-min" class="bg-transparent text-base text-slate-800 font-bold focus:outline-none w-full text-center cursor-pointer"></select>
+                            <label class="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">結束時間</label>
+                            <div class="flex items-center space-x-2 bg-slate-50 border border-slate-300 rounded-xl p-2 sm:p-2.5 focus-within:border-indigo-600 focus-within:bg-white transition">
+                                <select id="admin-end-hour" class="bg-transparent text-sm sm:text-base text-slate-800 font-bold focus:outline-none w-full text-center cursor-pointer"></select>
+                                <span class="font-black text-slate-400 text-base sm:text-lg select-none">:</span>
+                                <select id="admin-end-min" class="bg-transparent text-sm sm:text-base text-slate-800 font-bold focus:outline-none w-full text-center cursor-pointer"></select>
                             </div>
                         </div>
 
                         <!-- 人數上限 -->
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2">每場人數上限</label>
-                            <input type="number" id="admin-capacity" min="1" value="5" required class="w-full text-base bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:border-indigo-600 focus:outline-none font-semibold">
+                            <label class="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">每場人數上限</label>
+                            <input type="number" id="admin-capacity" min="1" value="5" required class="w-full text-sm sm:text-base bg-slate-50 border border-slate-300 rounded-xl p-2 sm:p-2.5 focus:border-indigo-600 focus:outline-none font-semibold">
                         </div>
 
                         <!-- 單場費用 -->
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2">預設單場費用 (NT$)</label>
-                            <input type="number" id="admin-price" min="0" value="270" required class="w-full text-base bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:border-indigo-600 focus:outline-none font-semibold">
+                            <label class="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">預設單場費用 (NT$)</label>
+                            <input type="number" id="admin-price" min="0" value="270" required class="w-full text-sm sm:text-base bg-slate-50 border border-slate-300 rounded-xl p-2 sm:p-2.5 focus:border-indigo-600 focus:outline-none font-semibold">
                         </div>
                     </div>
 
                     <!-- 多選日期 -->
-                    <div class="space-y-3 pt-5 border-t border-slate-100">
-                        <label class="block text-sm font-bold text-slate-700">選擇欲開放的日期（可多選）</label>
-                        <div class="flex flex-wrap items-center gap-3">
-                            <input type="date" id="admin-date-picker" class="text-sm bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:border-indigo-600 focus:outline-none font-medium">
-                            <button type="button" onclick="addSelectedDate()" class="bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-bold px-5 py-2.5 rounded-xl border border-slate-300 transition">
-                                <i class="fa-solid fa-plus mr-1.5"></i>加入此日期
+                    <div class="space-y-3 pt-3 border-t border-slate-100">
+                        <label class="block text-xs sm:text-sm font-bold text-slate-700">選擇欲開放的日期（可多選）</label>
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <input type="date" id="admin-date-picker" class="text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl p-2 sm:p-2.5 focus:border-indigo-600 focus:outline-none font-medium flex-grow sm:flex-grow-0">
+                            <button type="button" onclick="addSelectedDate()" class="bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs sm:text-sm font-bold px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl border border-slate-300 transition whitespace-nowrap">
+                                <i class="fa-solid fa-plus mr-1"></i>加入日期
                             </button>
-                            <span class="text-sm text-slate-500 font-medium">已加入 <strong id="selected-date-count" class="text-indigo-600 text-base font-extrabold">0</strong> 個日期</span>
+                            <span class="text-xs text-slate-500 font-medium">已選 <strong id="selected-date-count" class="text-indigo-600 text-sm font-extrabold">0</strong> 個</span>
                         </div>
-                        <div id="selected-dates-container" class="flex flex-wrap gap-2.5 min-h-[48px] p-3 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                            <span class="text-slate-400 text-sm self-center px-2">尚未加入任何日期</span>
+                        <div id="selected-dates-container" class="flex flex-wrap gap-2 min-h-[44px] p-2.5 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                            <span class="text-slate-400 text-xs self-center px-2">尚未加入任何日期</span>
                         </div>
                     </div>
 
                     <div class="flex justify-end pt-2">
-                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-base font-bold px-8 py-3 rounded-xl shadow-md transition flex items-center space-x-2">
+                        <button type="submit" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white text-sm sm:text-base font-bold px-8 py-3 rounded-xl shadow-md transition flex items-center justify-center space-x-2">
                             <i class="fa-solid fa-cloud-arrow-up mr-1.5"></i>
-                            <span>確認批次發布</span>
+                            <span>確認批次發布至雲端</span>
                         </button>
                     </div>
                 </form>
@@ -195,28 +190,28 @@
 
             <!-- 時段管理清單 -->
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-4">
-                <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <h3 class="font-extrabold text-slate-900 text-lg flex items-center">
-                        <i class="fa-solid fa-list-check text-slate-700 mr-2.5"></i>開放時段管理清單
+                <div class="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <h3 class="font-extrabold text-slate-900 text-base sm:text-lg flex items-center">
+                        <i class="fa-solid fa-list-check text-slate-700 mr-2"></i>開放時段管理清單
                     </h3>
-                    <div class="flex items-center space-x-2.5 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                        <span class="text-sm font-bold text-slate-700 whitespace-nowrap">整批調整費用：</span>
-                        <input type="number" id="batch-price-input" placeholder="新金額" class="w-28 text-sm bg-white border border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:border-indigo-600 font-semibold">
-                        <button onclick="handleBatchUpdatePrice()" class="bg-slate-800 hover:bg-slate-700 text-white text-sm px-4 py-1.5 rounded-lg transition font-bold">
-                            套用全部
+                    <div class="flex items-center space-x-2 bg-slate-50 p-2 rounded-xl border border-slate-200 self-start sm:self-auto">
+                        <span class="text-xs sm:text-sm font-bold text-slate-700 whitespace-nowrap">整批調費：</span>
+                        <input type="number" id="batch-price-input" placeholder="金額" class="w-20 sm:w-24 text-xs sm:text-sm bg-white border border-slate-300 rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-600 font-semibold">
+                        <button onclick="handleBatchUpdatePrice()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs sm:text-sm px-3 py-1 rounded-lg transition font-bold whitespace-nowrap">
+                            套用
                         </button>
                     </div>
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm text-slate-600">
-                        <thead class="bg-slate-50 text-slate-800 uppercase font-bold border-b border-slate-200 text-xs tracking-wider">
+                <div class="overflow-x-auto w-full">
+                    <table class="w-full text-left text-xs sm:text-sm text-slate-600 min-w-[620px]">
+                        <thead class="bg-slate-50 text-slate-800 uppercase font-bold border-b border-slate-200 text-[11px] sm:text-xs tracking-wider">
                             <tr>
-                                <th class="px-6 py-4">日期 / 時段</th>
-                                <th class="px-6 py-4">人數狀態</th>
-                                <th class="px-6 py-4">單場收費 (NT$)</th>
-                                <th class="px-6 py-4">已報名名單</th>
-                                <th class="px-6 py-4 text-right">操作</th>
+                                <th class="px-4 py-3 sm:px-6 sm:py-4">日期 / 時段</th>
+                                <th class="px-4 py-3 sm:px-6 sm:py-4">名額狀態</th>
+                                <th class="px-4 py-3 sm:px-6 sm:py-4">單場費用 (NT$)</th>
+                                <th class="px-4 py-3 sm:px-6 sm:py-4">已報名名單</th>
+                                <th class="px-4 py-3 sm:px-6 sm:py-4 text-right">操作</th>
                             </tr>
                         </thead>
                         <tbody id="admin-slot-tbody" class="divide-y divide-slate-100 font-sans"></tbody>
@@ -226,15 +221,15 @@
         </div>
     </main>
 
-    <!-- 管理員登入 Modal 視窗 -->
+    <!-- 管理員登入 Modal -->
     <div id="login-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl border border-slate-200 space-y-6">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-                        <i class="fa-solid fa-shield-halved text-lg"></i>
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-shield-halved text-base"></i>
                     </div>
-                    <h3 class="font-extrabold text-xl text-slate-900">管理員驗證</h3>
+                    <h3 class="font-extrabold text-lg sm:text-xl text-slate-900">管理員驗證</h3>
                 </div>
                 <button onclick="closeLoginModal()" class="text-slate-400 hover:text-slate-600 text-lg">
                     <i class="fa-solid fa-xmark"></i>
@@ -243,15 +238,15 @@
 
             <form onsubmit="handleLoginSubmit(event)" class="space-y-4">
                 <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1.5">管理者帳號</label>
-                    <input type="text" id="admin-username" required class="w-full text-base bg-slate-50 border border-slate-300 rounded-xl p-3 focus:outline-none focus:border-indigo-600 font-medium" placeholder="請輸入帳號">
+                    <label class="block text-xs sm:text-sm font-bold text-slate-700 mb-1">管理者帳號</label>
+                    <input type="text" id="admin-username" required class="w-full text-sm sm:text-base bg-slate-50 border border-slate-300 rounded-xl p-2.5 sm:p-3 focus:outline-none focus:border-indigo-600 font-medium" placeholder="請輸入帳號">
                 </div>
                 <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1.5">管理者密碼</label>
-                    <input type="password" id="admin-password" required class="w-full text-base bg-slate-50 border border-slate-300 rounded-xl p-3 focus:outline-none focus:border-indigo-600 font-medium" placeholder="請輸入密碼">
+                    <label class="block text-xs sm:text-sm font-bold text-slate-700 mb-1">管理者密碼</label>
+                    <input type="password" id="admin-password" required class="w-full text-sm sm:text-base bg-slate-50 border border-slate-300 rounded-xl p-2.5 sm:p-3 focus:outline-none focus:border-indigo-600 font-medium" placeholder="請輸入密碼">
                 </div>
                 <div class="pt-2">
-                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-md transition">
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 sm:py-3 rounded-xl shadow-md transition text-sm sm:text-base">
                         確認登入
                     </button>
                 </div>
@@ -259,10 +254,79 @@
         </div>
     </div>
 
+    <!-- 管理員編輯時段 Modal -->
+    <div id="edit-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-pen-to-square text-base"></i>
+                    </div>
+                    <h3 class="font-extrabold text-lg sm:text-xl text-slate-900">編輯時段內容</h3>
+                </div>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form onsubmit="handleSaveEditedSlot(event)" class="space-y-4">
+                <input type="hidden" id="edit-slot-id">
+
+                <!-- 編輯日期 -->
+                <div>
+                    <label class="block text-xs sm:text-sm font-bold text-slate-700 mb-1">開放日期</label>
+                    <input type="date" id="edit-date" required class="w-full text-sm sm:text-base bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:outline-none focus:border-indigo-600 font-medium">
+                </div>
+
+                <!-- 編輯時間 -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs sm:text-sm font-bold text-slate-700 mb-1">開始時間</label>
+                        <div class="flex items-center space-x-1 bg-slate-50 border border-slate-300 rounded-xl p-2 focus-within:border-indigo-600 focus-within:bg-white">
+                            <select id="edit-start-hour" class="bg-transparent text-sm font-bold focus:outline-none w-full text-center"></select>
+                            <span class="font-black text-slate-400">:</span>
+                            <select id="edit-start-min" class="bg-transparent text-sm font-bold focus:outline-none w-full text-center"></select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs sm:text-sm font-bold text-slate-700 mb-1">結束時間</label>
+                        <div class="flex items-center space-x-1 bg-slate-50 border border-slate-300 rounded-xl p-2 focus-within:border-indigo-600 focus-within:bg-white">
+                            <select id="edit-end-hour" class="bg-transparent text-sm font-bold focus:outline-none w-full text-center"></select>
+                            <span class="font-black text-slate-400">:</span>
+                            <select id="edit-end-min" class="bg-transparent text-sm font-bold focus:outline-none w-full text-center"></select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 編輯名額上限與費用 -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs sm:text-sm font-bold text-slate-700 mb-1">人數上限</label>
+                        <input type="number" id="edit-capacity" min="1" required class="w-full text-sm sm:text-base bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:outline-none focus:border-indigo-600 font-bold">
+                        <p id="edit-booked-hint" class="text-[11px] text-slate-400 mt-1"></p>
+                    </div>
+                    <div>
+                        <label class="block text-xs sm:text-sm font-bold text-slate-700 mb-1">單場費用 (NT$)</label>
+                        <input type="number" id="edit-price" min="0" required class="w-full text-sm sm:text-base bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:outline-none focus:border-indigo-600 font-bold">
+                    </div>
+                </div>
+
+                <div class="pt-3 flex space-x-2">
+                    <button type="button" onclick="closeEditModal()" class="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition text-sm">
+                        取消
+                    </button>
+                    <button type="submit" class="w-1/2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl shadow-md transition text-sm">
+                        儲存變更
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript 邏輯 -->
     <script>
-        // 1. Supabase 設定（自動過濾格式防呆）
-        let inputUrl = 'https://tkfcaslebnyubjrimykm.supabase.co'; // 填入你的 Supabase URL
-        let inputKey = 'sb_publishable_8tc9VwixlLDl8J1JxsOMJw_S924TvEn';              // 填入你的 Supabase default Key
+        let inputUrl = 'https://tkfcaslebnyubjrimykm.supabase.co'; // 你的 Supabase URL
+        let inputKey = 'sb_publishable_8tc9VwixlLDl8J1JxsOMJw_S924TvEn';              // 你的 Key
 
         try {
             const parsedUrl = new URL(inputUrl.trim());
@@ -273,15 +337,14 @@
 
         const supabaseClient = window.supabase.createClient(inputUrl, inputKey.trim());
 
-        // 2. 管理員預設帳密（可自訂）
         const ADMIN_CREDENTIALS = {
             username: 'admin',
-            password: 'password888' // 預設密碼，請自行修改
+            password: 'password888'
         };
 
         let slots = [];
         let currentRole = 'user';
-        let isAdminLoggedIn = false; // 是否已登入管理員
+        let isAdminLoggedIn = false;
         let selectedBatchDates = [];
 
         function getTodayString() {
@@ -297,7 +360,6 @@
             });
         }
 
-        // 從 Supabase 取得所有時段資料
         async function fetchSlotsFromSupabase() {
             try {
                 const { data, error } = await supabaseClient
@@ -319,7 +381,7 @@
                 else renderAdminView();
             } catch (err) {
                 console.error('Supabase 載入錯誤:', err);
-                document.getElementById('user-available-count').innerText = '載入失敗，請確認 API Key';
+                document.getElementById('user-available-count').innerText = '載入失敗，請檢查 API Key';
             }
         }
 
@@ -328,17 +390,17 @@
             document.getElementById('admin-date-picker').value = todayStr;
             document.getElementById('user-month-filter').value = todayStr.substring(0, 7);
 
-            // 檢查 session 是否已登入過
             if (sessionStorage.getItem('is_admin_auth') === 'true') {
                 isAdminLoggedIn = true;
                 updateAuthUI();
             }
 
             initTimeOptions();
+            initEditTimeOptions();
             fetchSlotsFromSupabase();
         };
 
-        // ======================= 登入與權限控制 =======================
+        // 登入相關
         function openLoginModal() {
             document.getElementById('login-modal').classList.remove('hidden');
         }
@@ -359,7 +421,7 @@
                 sessionStorage.setItem('is_admin_auth', 'true');
                 closeLoginModal();
                 updateAuthUI();
-                switchRole('admin'); // 登入後自動切換至管理後台
+                switchRole('admin');
                 alert('管理員登入成功！');
             } else {
                 alert('帳號或密碼錯誤！');
@@ -370,11 +432,10 @@
             isAdminLoggedIn = false;
             sessionStorage.removeItem('is_admin_auth');
             updateAuthUI();
-            switchRole('user'); // 登出後自動返回使用者端
-            alert('已成功登出管理員！');
+            switchRole('user');
+            alert('已登出管理員！');
         }
 
-        // 更新頂部按鈕狀態
         function updateAuthUI() {
             const btnOpenLogin = document.getElementById('btn-open-login');
             const adminControls = document.getElementById('admin-logged-controls');
@@ -388,9 +449,7 @@
             }
         }
 
-        // 切換身分
         function switchRole(role) {
-            // 防護：若未登入卻嘗試切換管理員，阻擋並彈出登入視窗
             if (role === 'admin' && !isAdminLoggedIn) {
                 openLoginModal();
                 return;
@@ -404,16 +463,16 @@
 
             if (role === 'user') {
                 if (btnUser && btnAdmin) {
-                    btnUser.className = "px-4 py-2 rounded-lg text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm";
-                    btnAdmin.className = "px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900 transition-all";
+                    btnUser.className = "px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm";
+                    btnAdmin.className = "px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 transition-all";
                 }
                 viewUser.classList.remove('hidden');
                 viewAdmin.classList.add('hidden');
                 renderUserView();
             } else {
                 if (btnUser && btnAdmin) {
-                    btnAdmin.className = "px-4 py-2 rounded-lg text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm";
-                    btnUser.className = "px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900 transition-all";
+                    btnAdmin.className = "px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm";
+                    btnUser.className = "px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 transition-all";
                 }
                 viewAdmin.classList.remove('hidden');
                 viewUser.classList.add('hidden');
@@ -429,79 +488,66 @@
             const bookedContainer = document.getElementById('user-booked-list');
             const countContainer = document.getElementById('user-available-count');
             const todayStr = getTodayString();
-        
-            // 1. 篩選：同月份且未過期
+
             let validSlots = slots.filter(s => s.date.startsWith(selectedMonth) && s.date >= todayStr);
             validSlots = sortSlotsChronologically(validSlots);
-        
-            // 2. 計算 3 種狀態數量
-            let availableCount = 0; // 可預約（未額滿）
-            let fullCount = 0;      // 已額滿
-            let almostFullCount = 0;// 將額滿（上限>1 且 剩餘=1）
-        
+
+            let availableCount = 0, fullCount = 0, almostFullCount = 0;
+
             validSlots.forEach(s => {
                 const bookedNum = (s.bookedUsers || []).length;
                 const remaining = s.capacity - bookedNum;
-            
-                if (remaining > 0) {
-                    availableCount++; // 未額滿皆計入可預約
-                } else {
-                    fullCount++;      // 額滿
-                }
-            
-                // 判斷是否將額滿
-                if (s.capacity > 1 && remaining === 1) {
-                    almostFullCount++;
-                }
+                if (remaining > 0) availableCount++;
+                else fullCount++;
+
+                if (s.capacity > 1 && remaining === 1) almostFullCount++;
             });
-        
-            // 3. 渲染 3 種狀態徽章
+
             countContainer.innerHTML = `
-                <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full">
-                    ${availableCount} 個可預約時段 (未額滿)
+                <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full whitespace-nowrap">
+                    ${availableCount} 個可預約 (未滿)
                 </span>
-                <span class="bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1 rounded-full">
-                    ${fullCount} 個已額滿時段
+                <span class="bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-full whitespace-nowrap">
+                    ${fullCount} 個已額滿
                 </span>
-                <span class="bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1 rounded-full">
-                    ${almostFullCount} 個將額滿時段 (剩1名額)
+                <span class="bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-full whitespace-nowrap">
+                    ${almostFullCount} 個將額滿 (剩1名)
                 </span>
             `;
-            
-            // 4. 渲染可預約卡片清單（其餘部分保持不變）
+
             if (validSlots.length === 0) {
-                container.innerHTML = `<div class="col-span-2 text-center py-16 text-slate-400 bg-white rounded-2xl border border-slate-200 text-base font-medium">此月份尚無未過期的開放預約時段</div>`;
+                container.innerHTML = `<div class="col-span-2 text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200 text-sm sm:text-base font-medium">此月份尚無未過期的開放預約時段</div>`;
             } else {
                 container.innerHTML = validSlots.map(s => {
                     const isBooked = (s.bookedUsers || []).includes(userName);
                     const remaining = s.capacity - (s.bookedUsers || []).length;
                     const isFull = remaining <= 0 && !isBooked;
                     const isAlmostFull = s.capacity > 1 && remaining === 1 && !isBooked;
-                
+
                     return `
-                        <div class="p-6 rounded-2xl border transition-all ${isBooked ? 'bg-indigo-50/60 border-indigo-300 ring-2 ring-indigo-500' : 'bg-white border-slate-200'} shadow-sm space-y-4">
+                        <div class="p-5 sm:p-6 rounded-2xl border transition-all ${isBooked ? 'bg-indigo-50/60 border-indigo-300 ring-2 ring-indigo-500' : 'bg-white border-slate-200'} shadow-sm space-y-3">
                             <div class="flex justify-between items-start">
                                 <div>
-                                    <span class="text-sm font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-lg">${s.date}</span>
-                                    <h4 class="font-extrabold text-slate-900 text-lg mt-2 tracking-tight">${s.time}</h4>
+                                    <span class="text-xs sm:text-sm font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-0.5 rounded-lg">${s.date}</span>
+                                    <h4 class="font-extrabold text-slate-900 text-base sm:text-lg mt-1.5 tracking-tight">${s.time}</h4>
                                 </div>
                                 <div class="text-right">
-                                    <span class="text-xl font-black text-slate-900">NT$ ${s.price}</span>
-                                    ${isAlmostFull ? '<span class="block text-xs font-bold text-amber-600 mt-0.5">即將額滿</span>' : ''}
+                                    <span class="text-lg sm:text-xl font-black text-slate-900">NT$ ${s.price}</span>
+                                    ${isAlmostFull ? '<span class="block text-[11px] font-bold text-amber-600 mt-0.5">即將額滿</span>' : ''}
                                 </div>
                             </div>
-                        
-                            <div class="flex items-center justify-between text-sm text-slate-500 pt-3 border-t border-slate-100">
-                                <span class="font-medium">剩餘名額：<strong class="text-base ${remaining <= 1 ? 'text-rose-600' : 'text-slate-800'} font-extrabold">${remaining}</strong> / ${s.capacity}</span>
 
+                            <div class="flex items-center justify-between text-xs sm:text-sm text-slate-500 pt-2.5 border-t border-slate-100">
+                                <span class="font-medium">名額：<strong class="text-sm sm:text-base ${remaining <= 1 ? 'text-rose-600' : 'text-slate-800'} font-extrabold">${remaining}</strong> / ${s.capacity}</span>
+                                
                                 ${isBooked ? `
-                                    <button onclick="cancelBooking('${s.id}')" class="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold transition text-sm">
+                                    <button onclick="cancelBooking('${s.id}')" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold transition text-xs sm:text-sm">
                                         <i class="fa-solid fa-xmark mr-1"></i>取消預約
                                     </button>
                                 ` : isFull ? `
-                                    <span class="px-4 py-2 rounded-xl bg-slate-100 text-slate-400 font-bold cursor-not-allowed text-sm">已額滿</span>
+                                    <span class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-slate-100 text-slate-400 font-bold cursor-not-allowed text-xs sm:text-sm">已額滿</span>
                                 ` : `
-                                    <button onclick="bookSlot('${s.id}')" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md transition text-sm">
+                                    <button onclick="bookSlot('${s.id}')" class="px-4 py-1.5 sm:px-5 sm:py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md transition text-xs sm:text-sm">
                                         <i class="fa-solid fa-plus mr-1"></i>預約報名
                                     </button>
                                 `}
@@ -510,31 +556,30 @@
                     `;
                 }).join('');
             }
-        
-            // 5. 計算月結費用與明細
+
             const allUserMonthSlots = sortSlotsChronologically(slots.filter(s => s.date.startsWith(selectedMonth) && (s.bookedUsers || []).includes(userName)));
             const totalFee = allUserMonthSlots.reduce((sum, item) => sum + item.price, 0);
-        
+
             document.getElementById('user-total-fee').innerText = totalFee.toLocaleString();
             document.getElementById('user-booked-count').innerText = `${allUserMonthSlots.length} 場`;
-        
+
             if (allUserMonthSlots.length === 0) {
-                bookedContainer.innerHTML = `<p class="text-slate-400 text-center py-6 text-sm">本月尚未報名任何時段</p>`;
+                bookedContainer.innerHTML = `<p class="text-slate-400 text-center py-5 text-xs sm:text-sm">本月尚未報名任何時段</p>`;
             } else {
                 bookedContainer.innerHTML = allUserMonthSlots.map(s => {
                     const isPast = s.date < todayStr;
                     return `
-                        <div class="pt-3.5 first:pt-0 flex items-center justify-between">
+                        <div class="pt-3 first:pt-0 flex items-center justify-between">
                             <div>
-                                <p class="font-bold text-slate-800 text-sm">
+                                <p class="font-bold text-slate-800 text-xs sm:text-sm">
                                     ${s.date} <span class="font-semibold text-slate-500">(${s.time})</span>
-                                    ${isPast ? '<span class="text-xs text-slate-400 ml-1 font-normal">[已結束]</span>' : ''}
+                                    ${isPast ? '<span class="text-[10px] text-slate-400 ml-1 font-normal">[已結束]</span>' : ''}
                                 </p>
                                 <span class="text-xs text-slate-500 font-medium">費用：NT$ ${s.price}</span>
                             </div>
                             ${!isPast ? `
                                 <button onclick="cancelBooking('${s.id}')" class="text-rose-500 hover:text-rose-700 text-xs font-bold px-2 py-1 rounded hover:bg-rose-50 transition">取消</button>
-                            ` : '<span class="text-xs text-slate-400">已結算</span>'}
+                            ` : '<span class="text-[11px] text-slate-400">已結算</span>'}
                         </div>
                     `;
                 }).join('');
@@ -603,6 +648,31 @@
             endHour.value = '10'; endMin.value = '00';
         }
 
+        // 編輯彈窗的下拉選單初始化
+        function initEditTimeOptions() {
+            const startHour = document.getElementById('edit-start-hour');
+            const startMin = document.getElementById('edit-start-min');
+            const endHour = document.getElementById('edit-end-hour');
+            const endMin = document.getElementById('edit-end-min');
+
+            if (!startHour || !startMin || !endHour || !endMin) return;
+
+            startHour.innerHTML = ''; endHour.innerHTML = '';
+            startMin.innerHTML = ''; endMin.innerHTML = '';
+
+            for (let h = 0; h < 24; h++) {
+                const hStr = String(h).padStart(2, '0');
+                startHour.innerHTML += `<option value="${hStr}">${hStr}</option>`;
+                endHour.innerHTML += `<option value="${hStr}">${hStr}</option>`;
+            }
+
+            for (let m = 0; m < 60; m += 5) {
+                const mStr = String(m).padStart(2, '0');
+                startMin.innerHTML += `<option value="${mStr}">${mStr}</option>`;
+                endMin.innerHTML += `<option value="${mStr}">${mStr}</option>`;
+            }
+        }
+
         function autoAdjustEndTime() {
             const sH = parseInt(document.getElementById('admin-start-hour').value);
             const sM = parseInt(document.getElementById('admin-start-min').value);
@@ -635,15 +705,15 @@
             document.getElementById('selected-date-count').innerText = selectedBatchDates.length;
 
             if (selectedBatchDates.length === 0) {
-                container.innerHTML = `<span class="text-slate-400 text-sm self-center px-2">尚未加入任何日期</span>`;
+                container.innerHTML = `<span class="text-slate-400 text-xs self-center px-2">尚未加入任何日期</span>`;
                 return;
             }
 
             container.innerHTML = selectedBatchDates.map(date => `
-                <span class="inline-flex items-center text-sm font-bold bg-indigo-50 text-indigo-700 px-3.5 py-1.5 rounded-xl border border-indigo-200 shadow-sm">
+                <span class="inline-flex items-center text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1 rounded-xl border border-indigo-200 shadow-sm">
                     <i class="fa-regular fa-calendar mr-1.5 text-indigo-500"></i>${date}
-                    <button type="button" onclick="removeSelectedDate('${date}')" class="ml-2.5 text-indigo-400 hover:text-rose-500 transition">
-                        <i class="fa-solid fa-xmark text-sm"></i>
+                    <button type="button" onclick="removeSelectedDate('${date}')" class="ml-2 text-indigo-400 hover:text-rose-500 transition">
+                        <i class="fa-solid fa-xmark text-xs"></i>
                     </button>
                 </span>
             `).join('');
@@ -655,7 +725,7 @@
             const sortedSlots = sortSlotsChronologically([...slots]);
 
             if (sortedSlots.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-12 text-slate-400 text-base">目前尚無任何開放時段</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-slate-400 text-sm">目前尚無任何開放時段</td></tr>`;
                 return;
             }
 
@@ -664,29 +734,34 @@
                 const userList = s.bookedUsers || [];
                 return `
                     <tr class="hover:bg-slate-50 transition ${isPast ? 'bg-slate-50/50 opacity-65' : ''}">
-                        <td class="px-6 py-4.5">
-                            <span class="font-extrabold text-slate-900 text-base">${s.date}</span>
-                            ${isPast ? '<span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded ml-1.5 font-bold">已過期</span>' : ''}
-                            <div class="text-slate-500 text-sm font-semibold mt-0.5">${s.time}</div>
+                        <td class="px-4 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
+                            <span class="font-extrabold text-slate-900 text-sm sm:text-base">${s.date}</span>
+                            ${isPast ? '<span class="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded ml-1 font-bold">已過期</span>' : ''}
+                            <div class="text-slate-500 text-xs sm:text-sm font-semibold mt-0.5">${s.time}</div>
                         </td>
-                        <td class="px-6 py-4.5">
-                            <span class="px-3 py-1 rounded-lg text-xs font-extrabold ${userList.length >= s.capacity ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-700'}">
+                        <td class="px-4 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
+                            <span class="px-2.5 py-1 rounded-lg text-xs font-extrabold ${userList.length >= s.capacity ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-700'}">
                                 ${userList.length} / ${s.capacity} 人
                             </span>
                         </td>
-                        <td class="px-6 py-4.5">
-                            <div class="flex items-center space-x-1.5">
-                                <span class="font-bold text-slate-500">NT$</span>
+                        <td class="px-4 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
+                            <div class="flex items-center space-x-1">
+                                <span class="font-bold text-slate-500 text-xs">NT$</span>
                                 <input type="number" value="${s.price}" min="0" 
                                     onchange="updateSinglePrice('${s.id}', this.value)" 
-                                    class="w-24 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:outline-none focus:border-indigo-600 font-extrabold text-base">
+                                    class="w-20 bg-white border border-slate-300 rounded-lg px-2 py-1 text-slate-800 focus:outline-none focus:border-indigo-600 font-extrabold text-sm sm:text-base">
                             </div>
                         </td>
-                        <td class="px-6 py-4.5">
-                            <span class="text-slate-700 font-medium text-sm">${userList.join(', ') || '<span class="text-slate-300 font-normal">無人報名</span>'}</span>
+                        <td class="px-4 py-3 sm:px-6 sm:py-4 min-w-[140px]">
+                            <span class="text-slate-700 font-medium text-xs sm:text-sm leading-relaxed">${userList.join(', ') || '<span class="text-slate-300 font-normal">無人報名</span>'}</span>
                         </td>
-                        <td class="px-6 py-4.5 text-right">
-                            <button onclick="deleteSlot('${s.id}')" class="text-rose-500 hover:text-rose-700 font-bold text-sm px-3 py-1.5 rounded-lg hover:bg-rose-50 transition">
+                        <td class="px-4 py-3 sm:px-6 sm:py-4 text-right whitespace-nowrap space-x-1.5">
+                            <!-- 編輯按鈕 -->
+                            <button onclick="openEditModal('${s.id}')" class="text-amber-600 hover:text-amber-800 font-bold text-xs sm:text-sm px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 transition">
+                                <i class="fa-solid fa-pen-to-square mr-1"></i>編輯
+                            </button>
+                            <!-- 刪除按鈕 -->
+                            <button onclick="deleteSlot('${s.id}')" class="text-rose-500 hover:text-rose-700 font-bold text-xs sm:text-sm px-2.5 py-1 rounded-lg hover:bg-rose-50 transition">
                                 <i class="fa-solid fa-trash mr-1"></i>刪除
                             </button>
                         </td>
@@ -728,7 +803,89 @@
             selectedBatchDates = [];
             renderSelectedDates();
             await fetchSlotsFromSupabase();
-            alert(`已成功批次發布至 Supabase 雲端！`);
+            alert(`已成功批次發布至雲端！`);
+        }
+
+        // ======================= 編輯功能邏輯 =======================
+        function openEditModal(slotId) {
+            const slot = slots.find(s => s.id === slotId);
+            if (!slot) return;
+
+            document.getElementById('edit-slot-id').value = slot.id;
+            document.getElementById('edit-date').value = slot.date;
+            document.getElementById('edit-capacity').value = slot.capacity;
+            document.getElementById('edit-price').value = slot.price;
+
+            // 拆解時間格式 "HH:MM - HH:MM"
+            const timeParts = slot.time.split(' - ');
+            if (timeParts.length === 2) {
+                const [startH, startM] = timeParts[0].split(':');
+                const [endH, endM] = timeParts[1].split(':');
+
+                document.getElementById('edit-start-hour').value = startH;
+                document.getElementById('edit-start-min').value = startM;
+                document.getElementById('edit-end-hour').value = endH;
+                document.getElementById('edit-end-min').value = endM;
+            }
+
+            const bookedCount = (slot.bookedUsers || []).length;
+            document.getElementById('edit-booked-hint').innerText = `目前已報名：${bookedCount} 人`;
+
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+        }
+
+        async function handleSaveEditedSlot(e) {
+            e.preventDefault();
+
+            const slotId = document.getElementById('edit-slot-id').value;
+            const newDate = document.getElementById('edit-date').value;
+            const newCapacity = parseInt(document.getElementById('edit-capacity').value);
+            const newPrice = parseInt(document.getElementById('edit-price').value);
+
+            const sH = document.getElementById('edit-start-hour').value;
+            const sM = document.getElementById('edit-start-min').value;
+            const eH = document.getElementById('edit-end-hour').value;
+            const eM = document.getElementById('edit-end-min').value;
+
+            const startTime = `${sH}:${sM}`;
+            const endTime = `${eH}:${eM}`;
+
+            // 驗證時間
+            if ((parseInt(sH) * 60 + parseInt(sM)) >= (parseInt(eH) * 60 + parseInt(eM))) {
+                return alert(`結束時間 (${endTime}) 必須晚於開始時間 (${startTime})！`);
+            }
+
+            // 驗證人數上限不可低於已報名人數
+            const currentSlot = slots.find(s => s.id === slotId);
+            const bookedCount = (currentSlot?.bookedUsers || []).length;
+            if (newCapacity < bookedCount) {
+                return alert(`人數上限 (${newCapacity}人) 不得低於目前已報名人數 (${bookedCount}人)！`);
+            }
+
+            const timeFormatted = `${startTime} - ${endTime}`;
+
+            // 更新至 Supabase
+            const { error } = await supabaseClient
+                .from('slots')
+                .update({
+                    date: newDate,
+                    time: timeFormatted,
+                    capacity: newCapacity,
+                    price: newPrice
+                })
+                .eq('id', slotId);
+
+            if (error) {
+                return alert('更新失敗：' + error.message);
+            }
+
+            closeEditModal();
+            await fetchSlotsFromSupabase();
+            alert('時段資訊已成功更新！');
         }
 
         async function updateSinglePrice(slotId, newPrice) {
