@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>線上時段預約與費用試算系統 (Supabase 雲端版)</title>
+    <title>線上時段預約與費用試算系統</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome 圖示庫 -->
@@ -27,18 +27,31 @@
                 </div>
                 <div>
                     <h1 class="font-extrabold text-2xl text-slate-900 leading-tight">時段預約系統</h1>
-                    <p class="text-sm text-slate-500 font-medium">Supabase 雲端資料同步版</p>
+                    <p class="text-sm text-slate-500 font-medium">雲端資料同步版</p>
                 </div>
             </div>
 
-            <!-- 身分切換按鈕 -->
-            <div class="flex items-center bg-slate-100 p-1.5 rounded-xl border border-slate-200">
-                <button id="btn-role-user" onclick="switchRole('user')" class="px-5 py-2 rounded-lg text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm">
-                    <i class="fa-solid fa-user mr-2"></i>一般使用者
+            <!-- 右側權限與身分切換按鈕區 -->
+            <div id="auth-controls" class="flex items-center space-x-3">
+                <!-- 未登入狀態：只顯示登入按鈕 -->
+                <button id="btn-open-login" onclick="openLoginModal()" class="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-700 hover:text-indigo-600 bg-slate-100 hover:bg-slate-200 transition flex items-center shadow-sm">
+                    <i class="fa-solid fa-lock mr-2"></i>管理員登入
                 </button>
-                <button id="btn-role-admin" onclick="switchRole('admin')" class="px-5 py-2 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900 transition-all">
-                    <i class="fa-solid fa-user-shield mr-2"></i>系統管理員
-                </button>
+
+                <!-- 已登入狀態：顯示身分切換列與登出按鈕（預設隱藏） -->
+                <div id="admin-logged-controls" class="hidden flex items-center space-x-3">
+                    <div class="flex items-center bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                        <button id="btn-role-user" onclick="switchRole('user')" class="px-4 py-2 rounded-lg text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm">
+                            <i class="fa-solid fa-user mr-1.5"></i>使用者端
+                        </button>
+                        <button id="btn-role-admin" onclick="switchRole('admin')" class="px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900 transition-all">
+                            <i class="fa-solid fa-user-shield mr-1.5"></i>管理後台
+                        </button>
+                    </div>
+                    <button onclick="handleLogout()" class="px-4 py-2 rounded-xl text-sm font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 transition">
+                        <i class="fa-solid fa-right-from-bracket mr-1"></i>登出
+                    </button>
+                </div>
             </div>
         </div>
     </header>
@@ -68,11 +81,15 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <!-- 左側 2 欄：可預約時段清單 -->
                 <div class="lg:col-span-2 space-y-5">
-                    <div class="flex items-center justify-between">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
                         <h2 class="font-extrabold text-slate-900 text-xl flex items-center">
                             <i class="fa-solid fa-clock mr-2.5 text-indigo-600"></i>開放預約時段（僅顯示未過期）
                         </h2>
-                        <span id="user-available-count" class="text-sm bg-indigo-50 text-indigo-700 px-3.5 py-1.5 rounded-full font-bold">連線中...</span>
+
+                        <!-- 3 種狀態統計標籤容器 -->
+                        <div id="user-available-count" class="flex items-center space-x-2 text-xs sm:text-sm font-bold flex-wrap gap-1.5">
+                            <span class="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full">載入中...</span>
+                        </div>
                     </div>
 
                     <div id="user-slot-list" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
@@ -104,7 +121,7 @@
             </div>
         </div>
 
-        <!-- ======================= 2. 管理員介面 ======================= -->
+        <!-- ======================= 2. 管理員介面 (登入後可見) ======================= -->
         <div id="view-admin" class="hidden space-y-8">
             <div class="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm space-y-6">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-4">
@@ -112,7 +129,7 @@
                         <h2 class="font-extrabold text-slate-900 text-lg flex items-center">
                             <i class="fa-solid fa-plus-circle text-indigo-600 mr-2.5"></i>開放新時段設定
                         </h2>
-                        <p class="text-sm text-slate-500 mt-1">先設定起訖時間，再多選日期批次儲存至 Supabase</p>
+                        <p class="text-sm text-slate-500 mt-1">先設定起訖時間，再多選日期批次儲存</p>
                     </div>
                     <span class="text-xs text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full font-bold">5 分鐘單位</span>
                 </div>
@@ -148,7 +165,7 @@
                         <!-- 單場費用 -->
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-2">預設單場費用 (NT$)</label>
-                            <input type="number" id="admin-price" min="0" value="500" required class="w-full text-base bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:border-indigo-600 focus:outline-none font-semibold">
+                            <input type="number" id="admin-price" min="0" value="270" required class="w-full text-base bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:border-indigo-600 focus:outline-none font-semibold">
                         </div>
                     </div>
 
@@ -170,7 +187,7 @@
                     <div class="flex justify-end pt-2">
                         <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-base font-bold px-8 py-3 rounded-xl shadow-md transition flex items-center space-x-2">
                             <i class="fa-solid fa-cloud-arrow-up mr-1.5"></i>
-                            <span>確認批次發布至雲端</span>
+                            <span>確認批次發布</span>
                         </button>
                     </div>
                 </form>
@@ -180,7 +197,7 @@
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-4">
                 <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <h3 class="font-extrabold text-slate-900 text-lg flex items-center">
-                        <i class="fa-solid fa-list-check text-slate-700 mr-2.5"></i>開放時段管理清單 (Supabase)
+                        <i class="fa-solid fa-list-check text-slate-700 mr-2.5"></i>開放時段管理清單
                     </h3>
                     <div class="flex items-center space-x-2.5 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                         <span class="text-sm font-bold text-slate-700 whitespace-nowrap">整批調整費用：</span>
@@ -209,16 +226,62 @@
         </div>
     </main>
 
-    <script>
-        // 請替換為您的 Supabase 專案設定值
-        const SUPABASE_URL = 'https://tkfcaslebnyubjrimykm.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_8tc9VwixlLDl8J1JxsOMJw_S924TvEn';
+    <!-- 管理員登入 Modal 視窗 -->
+    <div id="login-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl border border-slate-200 space-y-6">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-shield-halved text-lg"></i>
+                    </div>
+                    <h3 class="font-extrabold text-xl text-slate-900">管理員驗證</h3>
+                </div>
+                <button onclick="closeLoginModal()" class="text-slate-400 hover:text-slate-600 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
 
-        // 初始化 Supabase Client
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            <form onsubmit="handleLoginSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1.5">管理者帳號</label>
+                    <input type="text" id="admin-username" required class="w-full text-base bg-slate-50 border border-slate-300 rounded-xl p-3 focus:outline-none focus:border-indigo-600 font-medium" placeholder="請輸入帳號">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1.5">管理者密碼</label>
+                    <input type="password" id="admin-password" required class="w-full text-base bg-slate-50 border border-slate-300 rounded-xl p-3 focus:outline-none focus:border-indigo-600 font-medium" placeholder="請輸入密碼">
+                </div>
+                <div class="pt-2">
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-md transition">
+                        確認登入
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 1. Supabase 設定（自動過濾格式防呆）
+        let inputUrl = 'https://tkfcaslebnyubjrimykm.supabase.co'; // 填入你的 Supabase URL
+        let inputKey = 'sb_publishable_8tc9VwixlLDl8J1JxsOMJw_S924TvEn';              // 填入你的 Supabase default Key
+
+        try {
+            const parsedUrl = new URL(inputUrl.trim());
+            inputUrl = parsedUrl.origin;
+        } catch (e) {
+            console.error('URL 格式有誤', e);
+        }
+
+        const supabaseClient = window.supabase.createClient(inputUrl, inputKey.trim());
+
+        // 2. 管理員預設帳密（可自訂）
+        const ADMIN_CREDENTIALS = {
+            username: 'admin',
+            password: 'password888' // 預設密碼，請自行修改
+        };
 
         let slots = [];
         let currentRole = 'user';
+        let isAdminLoggedIn = false; // 是否已登入管理員
         let selectedBatchDates = [];
 
         function getTodayString() {
@@ -243,7 +306,6 @@
 
                 if (error) throw error;
 
-                // 欄位名稱對齊
                 slots = (data || []).map(item => ({
                     id: item.id,
                     date: item.date,
@@ -266,11 +328,74 @@
             document.getElementById('admin-date-picker').value = todayStr;
             document.getElementById('user-month-filter').value = todayStr.substring(0, 7);
 
+            // 檢查 session 是否已登入過
+            if (sessionStorage.getItem('is_admin_auth') === 'true') {
+                isAdminLoggedIn = true;
+                updateAuthUI();
+            }
+
             initTimeOptions();
             fetchSlotsFromSupabase();
         };
 
+        // ======================= 登入與權限控制 =======================
+        function openLoginModal() {
+            document.getElementById('login-modal').classList.remove('hidden');
+        }
+
+        function closeLoginModal() {
+            document.getElementById('login-modal').classList.add('hidden');
+            document.getElementById('admin-username').value = '';
+            document.getElementById('admin-password').value = '';
+        }
+
+        function handleLoginSubmit(e) {
+            e.preventDefault();
+            const u = document.getElementById('admin-username').value.trim();
+            const p = document.getElementById('admin-password').value.trim();
+
+            if (u === ADMIN_CREDENTIALS.username && p === ADMIN_CREDENTIALS.password) {
+                isAdminLoggedIn = true;
+                sessionStorage.setItem('is_admin_auth', 'true');
+                closeLoginModal();
+                updateAuthUI();
+                switchRole('admin'); // 登入後自動切換至管理後台
+                alert('管理員登入成功！');
+            } else {
+                alert('帳號或密碼錯誤！');
+            }
+        }
+
+        function handleLogout() {
+            isAdminLoggedIn = false;
+            sessionStorage.removeItem('is_admin_auth');
+            updateAuthUI();
+            switchRole('user'); // 登出後自動返回使用者端
+            alert('已成功登出管理員！');
+        }
+
+        // 更新頂部按鈕狀態
+        function updateAuthUI() {
+            const btnOpenLogin = document.getElementById('btn-open-login');
+            const adminControls = document.getElementById('admin-logged-controls');
+
+            if (isAdminLoggedIn) {
+                btnOpenLogin.classList.add('hidden');
+                adminControls.classList.remove('hidden');
+            } else {
+                btnOpenLogin.classList.remove('hidden');
+                adminControls.classList.add('hidden');
+            }
+        }
+
+        // 切換身分
         function switchRole(role) {
+            // 防護：若未登入卻嘗試切換管理員，阻擋並彈出登入視窗
+            if (role === 'admin' && !isAdminLoggedIn) {
+                openLoginModal();
+                return;
+            }
+
             currentRole = role;
             const btnUser = document.getElementById('btn-role-user');
             const btnAdmin = document.getElementById('btn-role-admin');
@@ -278,14 +403,18 @@
             const viewAdmin = document.getElementById('view-admin');
 
             if (role === 'user') {
-                btnUser.className = "px-5 py-2 rounded-lg text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm";
-                btnAdmin.className = "px-5 py-2 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900 transition-all";
+                if (btnUser && btnAdmin) {
+                    btnUser.className = "px-4 py-2 rounded-lg text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm";
+                    btnAdmin.className = "px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900 transition-all";
+                }
                 viewUser.classList.remove('hidden');
                 viewAdmin.classList.add('hidden');
                 renderUserView();
             } else {
-                btnAdmin.className = "px-5 py-2 rounded-lg text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm";
-                btnUser.className = "px-5 py-2 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900 transition-all";
+                if (btnUser && btnAdmin) {
+                    btnAdmin.className = "px-4 py-2 rounded-lg text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm";
+                    btnUser.className = "px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900 transition-all";
+                }
                 viewAdmin.classList.remove('hidden');
                 viewUser.classList.add('hidden');
                 renderAdminView();
@@ -298,20 +427,57 @@
             const selectedMonth = document.getElementById('user-month-filter').value;
             const container = document.getElementById('user-slot-list');
             const bookedContainer = document.getElementById('user-booked-list');
+            const countContainer = document.getElementById('user-available-count');
             const todayStr = getTodayString();
-
+        
+            // 1. 篩選：同月份且未過期
             let validSlots = slots.filter(s => s.date.startsWith(selectedMonth) && s.date >= todayStr);
             validSlots = sortSlotsChronologically(validSlots);
-
-            document.getElementById('user-available-count').innerText = `共 ${validSlots.length} 個可預約時段`;
-
+        
+            // 2. 計算 3 種狀態數量
+            let availableCount = 0; // 可預約（未額滿）
+            let fullCount = 0;      // 已額滿
+            let almostFullCount = 0;// 將額滿（上限>1 且 剩餘=1）
+        
+            validSlots.forEach(s => {
+                const bookedNum = (s.bookedUsers || []).length;
+                const remaining = s.capacity - bookedNum;
+            
+                if (remaining > 0) {
+                    availableCount++; // 未額滿皆計入可預約
+                } else {
+                    fullCount++;      // 額滿
+                }
+            
+                // 判斷是否將額滿
+                if (s.capacity > 1 && remaining === 1) {
+                    almostFullCount++;
+                }
+            });
+        
+            // 3. 渲染 3 種狀態徽章
+            countContainer.innerHTML = `
+                <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full">
+                    ${availableCount} 個可預約時段 (未額滿)
+                </span>
+                <span class="bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1 rounded-full">
+                    ${fullCount} 個已額滿時段
+                </span>
+                <span class="bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1 rounded-full">
+                    ${almostFullCount} 個將額滿時段 (剩1名額)
+                </span>
+            `;
+            
+            // 4. 渲染可預約卡片清單（其餘部分保持不變）
             if (validSlots.length === 0) {
                 container.innerHTML = `<div class="col-span-2 text-center py-16 text-slate-400 bg-white rounded-2xl border border-slate-200 text-base font-medium">此月份尚無未過期的開放預約時段</div>`;
             } else {
                 container.innerHTML = validSlots.map(s => {
                     const isBooked = (s.bookedUsers || []).includes(userName);
-                    const isFull = (s.bookedUsers || []).length >= s.capacity && !isBooked;
-
+                    const remaining = s.capacity - (s.bookedUsers || []).length;
+                    const isFull = remaining <= 0 && !isBooked;
+                    const isAlmostFull = s.capacity > 1 && remaining === 1 && !isBooked;
+                
                     return `
                         <div class="p-6 rounded-2xl border transition-all ${isBooked ? 'bg-indigo-50/60 border-indigo-300 ring-2 ring-indigo-500' : 'bg-white border-slate-200'} shadow-sm space-y-4">
                             <div class="flex justify-between items-start">
@@ -319,12 +485,15 @@
                                     <span class="text-sm font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-lg">${s.date}</span>
                                     <h4 class="font-extrabold text-slate-900 text-lg mt-2 tracking-tight">${s.time}</h4>
                                 </div>
-                                <span class="text-xl font-black text-slate-900">NT$ ${s.price}</span>
+                                <div class="text-right">
+                                    <span class="text-xl font-black text-slate-900">NT$ ${s.price}</span>
+                                    ${isAlmostFull ? '<span class="block text-xs font-bold text-amber-600 mt-0.5">即將額滿</span>' : ''}
+                                </div>
                             </div>
-
+                        
                             <div class="flex items-center justify-between text-sm text-slate-500 pt-3 border-t border-slate-100">
-                                <span class="font-medium">剩餘名額：<strong class="text-base ${(s.capacity - (s.bookedUsers || []).length) <= 1 ? 'text-rose-600' : 'text-slate-800'} font-extrabold">${s.capacity - (s.bookedUsers || []).length}</strong> / ${s.capacity}</span>
-                                
+                                <span class="font-medium">剩餘名額：<strong class="text-base ${remaining <= 1 ? 'text-rose-600' : 'text-slate-800'} font-extrabold">${remaining}</strong> / ${s.capacity}</span>
+
                                 ${isBooked ? `
                                     <button onclick="cancelBooking('${s.id}')" class="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold transition text-sm">
                                         <i class="fa-solid fa-xmark mr-1"></i>取消預約
@@ -341,13 +510,14 @@
                     `;
                 }).join('');
             }
-
+        
+            // 5. 計算月結費用與明細
             const allUserMonthSlots = sortSlotsChronologically(slots.filter(s => s.date.startsWith(selectedMonth) && (s.bookedUsers || []).includes(userName)));
             const totalFee = allUserMonthSlots.reduce((sum, item) => sum + item.price, 0);
-
+        
             document.getElementById('user-total-fee').innerText = totalFee.toLocaleString();
             document.getElementById('user-booked-count').innerText = `${allUserMonthSlots.length} 場`;
-
+        
             if (allUserMonthSlots.length === 0) {
                 bookedContainer.innerHTML = `<p class="text-slate-400 text-center py-6 text-sm">本月尚未報名任何時段</p>`;
             } else {
@@ -371,7 +541,6 @@
             }
         }
 
-        // 使用者報名
         async function bookSlot(slotId) {
             const userName = document.getElementById('user-name-input').value.trim();
             if (!userName) return alert('請先輸入預約人姓名！');
@@ -390,7 +559,6 @@
             await fetchSlotsFromSupabase();
         }
 
-        // 使用者取消
         async function cancelBooking(slotId) {
             const userName = document.getElementById('user-name-input').value.trim();
             const target = slots.find(s => s.id === slotId);
@@ -527,7 +695,6 @@
             }).join('');
         }
 
-        // 批次建立時段
         async function handleCreateSlots(e) {
             e.preventDefault();
             const sH = document.getElementById('admin-start-hour').value;
@@ -564,7 +731,6 @@
             alert(`已成功批次發布至 Supabase 雲端！`);
         }
 
-        // 單獨修改某時段費用
         async function updateSinglePrice(slotId, newPrice) {
             const { error } = await supabaseClient
                 .from('slots')
@@ -575,7 +741,6 @@
             await fetchSlotsFromSupabase();
         }
 
-        // 整批修改全部時段費用
         async function handleBatchUpdatePrice() {
             const batchPrice = parseInt(document.getElementById('batch-price-input').value);
             if (isNaN(batchPrice) || batchPrice < 0) return alert('請輸入有效的金額！');
@@ -584,7 +749,7 @@
                 const { error } = await supabaseClient
                     .from('slots')
                     .update({ price: batchPrice })
-                    .neq('price', -1); // 更新全部資料列
+                    .neq('price', -1);
 
                 if (error) return alert('整批修改失敗：' + error.message);
                 document.getElementById('batch-price-input').value = '';
@@ -593,7 +758,6 @@
             }
         }
 
-        // 刪除時段
         async function deleteSlot(slotId) {
             if (confirm('確定要從雲端刪除此時段嗎？')) {
                 const { error } = await supabaseClient
