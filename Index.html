@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>線上時段預約與費用試算系統 (Supabase 雲端版)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome 圖示庫 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google 字體 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Supabase JS 官方 SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style> body { font-family: 'Noto Sans TC', sans-serif; } </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col text-base">
+
+    <!-- 頂部導覽列 -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center space-x-3.5">
+                <div class="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-100">
+                    <i class="fa-solid fa-cloud-bolt text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-2xl text-slate-900 leading-tight">時段預約系統</h1>
+                    <p class="text-sm text-slate-500 font-medium">Supabase 雲端資料同步版</p>
+                </div>
+            </div>
+
+            <!-- 身分切換按鈕 -->
+            <div class="flex items-center bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                <button id="btn-role-user" onclick="switchRole('user')" class="px-5 py-2 rounded-lg text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm">
+                    <i class="fa-solid fa-user mr-2"></i>一般使用者
+                </button>
+                <button id="btn-role-admin" onclick="switchRole('admin')" class="px-5 py-2 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900 transition-all">
+                    <i class="fa-solid fa-user-shield mr-2"></i>系統管理員
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要內容區 -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+
+        <!-- ======================= 1. 一般使用者介面 ======================= -->
+        <div id="view-user" class="space-y-8">
+            <div class="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
+                <div class="flex items-center space-x-4">
+                    <div class="w-14 h-14 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl font-bold">
+                        <i class="fa-regular fa-circle-user"></i>
+                    </div>
+                    <div>
+                        <label class="text-sm text-slate-500 font-medium">當前預約人姓名</label>
+                        <input type="text" id="user-name-input" value="王小明" class="block font-extrabold text-slate-900 text-xl focus:outline-none border-b-2 border-dashed border-slate-300 focus:border-indigo-600 bg-transparent py-0.5" onchange="renderUserView()">
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <label class="text-base font-bold text-slate-700">檢視月份：</label>
+                    <input type="month" id="user-month-filter" class="text-base bg-slate-50 border border-slate-300 rounded-xl px-4 py-2 text-slate-800 focus:outline-none focus:border-indigo-600 font-medium" onchange="renderUserView()">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- 左側 2 欄：可預約時段清單 -->
+                <div class="lg:col-span-2 space-y-5">
+                    <div class="flex items-center justify-between">
+                        <h2 class="font-extrabold text-slate-900 text-xl flex items-center">
+                            <i class="fa-solid fa-clock mr-2.5 text-indigo-600"></i>開放預約時段（僅顯示未過期）
+                        </h2>
+                        <span id="user-available-count" class="text-sm bg-indigo-50 text-indigo-700 px-3.5 py-1.5 rounded-full font-bold">連線中...</span>
+                    </div>
+
+                    <div id="user-slot-list" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+                </div>
+
+                <!-- 右側 1 欄：當月帳單試算 -->
+                <div class="lg:col-span-1 space-y-6">
+                    <div class="bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white p-7 rounded-2xl shadow-xl">
+                        <span class="text-sm text-indigo-300 font-semibold tracking-wide">當月費用試算 (應繳金額)</span>
+                        <div class="flex items-baseline mt-3 mb-5">
+                            <span class="text-lg font-normal text-slate-300 mr-1.5">NT$</span>
+                            <h3 id="user-total-fee" class="text-5xl font-black tracking-tight text-white">0</h3>
+                        </div>
+                        <div class="text-sm text-slate-300 border-t border-white/15 pt-4 flex justify-between items-center">
+                            <span>當月已報名場次：</span>
+                            <span id="user-booked-count" class="font-extrabold text-lg text-emerald-400">0 場</span>
+                        </div>
+                    </div>
+
+                    <!-- 已預約明細 -->
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                        <h3 class="font-bold text-slate-900 text-base flex items-center justify-between pb-2 border-b border-slate-100">
+                            <span>我的已預約明細</span>
+                            <i class="fa-solid fa-receipt text-slate-400"></i>
+                        </h3>
+                        <div id="user-booked-list" class="space-y-3.5 divide-y divide-slate-100"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================= 2. 管理員介面 ======================= -->
+        <div id="view-admin" class="hidden space-y-8">
+            <div class="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                    <div>
+                        <h2 class="font-extrabold text-slate-900 text-lg flex items-center">
+                            <i class="fa-solid fa-plus-circle text-indigo-600 mr-2.5"></i>開放新時段設定
+                        </h2>
+                        <p class="text-sm text-slate-500 mt-1">先設定起訖時間，再多選日期批次儲存至 Supabase</p>
+                    </div>
+                    <span class="text-xs text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full font-bold">5 分鐘單位</span>
+                </div>
+
+                <form id="admin-create-form" onsubmit="handleCreateSlots(event)" class="space-y-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                        <!-- 開始時間 -->
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">開始時間</label>
+                            <div class="flex items-center space-x-2 bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus-within:border-indigo-600 focus-within:bg-white transition">
+                                <select id="admin-start-hour" class="bg-transparent text-base text-slate-800 font-bold focus:outline-none w-full text-center cursor-pointer" onchange="autoAdjustEndTime()"></select>
+                                <span class="font-black text-slate-400 text-lg select-none">:</span>
+                                <select id="admin-start-min" class="bg-transparent text-base text-slate-800 font-bold focus:outline-none w-full text-center cursor-pointer" onchange="autoAdjustEndTime()"></select>
+                            </div>
+                        </div>
+
+                        <!-- 結束時間 -->
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">結束時間</label>
+                            <div class="flex items-center space-x-2 bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus-within:border-indigo-600 focus-within:bg-white transition">
+                                <select id="admin-end-hour" class="bg-transparent text-base text-slate-800 font-bold focus:outline-none w-full text-center cursor-pointer"></select>
+                                <span class="font-black text-slate-400 text-lg select-none">:</span>
+                                <select id="admin-end-min" class="bg-transparent text-base text-slate-800 font-bold focus:outline-none w-full text-center cursor-pointer"></select>
+                            </div>
+                        </div>
+
+                        <!-- 人數上限 -->
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">每場人數上限</label>
+                            <input type="number" id="admin-capacity" min="1" value="5" required class="w-full text-base bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:border-indigo-600 focus:outline-none font-semibold">
+                        </div>
+
+                        <!-- 單場費用 -->
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">預設單場費用 (NT$)</label>
+                            <input type="number" id="admin-price" min="0" value="500" required class="w-full text-base bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:border-indigo-600 focus:outline-none font-semibold">
+                        </div>
+                    </div>
+
+                    <!-- 多選日期 -->
+                    <div class="space-y-3 pt-5 border-t border-slate-100">
+                        <label class="block text-sm font-bold text-slate-700">選擇欲開放的日期（可多選）</label>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <input type="date" id="admin-date-picker" class="text-sm bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:border-indigo-600 focus:outline-none font-medium">
+                            <button type="button" onclick="addSelectedDate()" class="bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-bold px-5 py-2.5 rounded-xl border border-slate-300 transition">
+                                <i class="fa-solid fa-plus mr-1.5"></i>加入此日期
+                            </button>
+                            <span class="text-sm text-slate-500 font-medium">已加入 <strong id="selected-date-count" class="text-indigo-600 text-base font-extrabold">0</strong> 個日期</span>
+                        </div>
+                        <div id="selected-dates-container" class="flex flex-wrap gap-2.5 min-h-[48px] p-3 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                            <span class="text-slate-400 text-sm self-center px-2">尚未加入任何日期</span>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end pt-2">
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-base font-bold px-8 py-3 rounded-xl shadow-md transition flex items-center space-x-2">
+                            <i class="fa-solid fa-cloud-arrow-up mr-1.5"></i>
+                            <span>確認批次發布至雲端</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 時段管理清單 -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-4">
+                <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <h3 class="font-extrabold text-slate-900 text-lg flex items-center">
+                        <i class="fa-solid fa-list-check text-slate-700 mr-2.5"></i>開放時段管理清單 (Supabase)
+                    </h3>
+                    <div class="flex items-center space-x-2.5 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                        <span class="text-sm font-bold text-slate-700 whitespace-nowrap">整批調整費用：</span>
+                        <input type="number" id="batch-price-input" placeholder="新金額" class="w-28 text-sm bg-white border border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:border-indigo-600 font-semibold">
+                        <button onclick="handleBatchUpdatePrice()" class="bg-slate-800 hover:bg-slate-700 text-white text-sm px-4 py-1.5 rounded-lg transition font-bold">
+                            套用全部
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-50 text-slate-800 uppercase font-bold border-b border-slate-200 text-xs tracking-wider">
+                            <tr>
+                                <th class="px-6 py-4">日期 / 時段</th>
+                                <th class="px-6 py-4">人數狀態</th>
+                                <th class="px-6 py-4">單場收費 (NT$)</th>
+                                <th class="px-6 py-4">已報名名單</th>
+                                <th class="px-6 py-4 text-right">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-slot-tbody" class="divide-y divide-slate-100 font-sans"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 請替換為您的 Supabase 專案設定值
+        const SUPABASE_URL = 'https://tkfcaslebnyubjrimykm.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_8tc9VwixlLDl8J1JxsOMJw_S924TvEn';
+
+        // 初始化 Supabase Client
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let slots = [];
+        let currentRole = 'user';
+        let selectedBatchDates = [];
+
+        function getTodayString() {
+            const now = new Date();
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        }
+
+        function sortSlotsChronologically(slotArray) {
+            return slotArray.sort((a, b) => {
+                const aTime = a.time.split(' - ')[0] || '00:00';
+                const bTime = b.time.split(' - ')[0] || '00:00';
+                return new Date(`${a.date}T${aTime}`) - new Date(`${b.date}T${bTime}`);
+            });
+        }
+
+        // 從 Supabase 取得所有時段資料
+        async function fetchSlotsFromSupabase() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('slots')
+                    .select('*');
+
+                if (error) throw error;
+
+                // 欄位名稱對齊
+                slots = (data || []).map(item => ({
+                    id: item.id,
+                    date: item.date,
+                    time: item.time,
+                    capacity: item.capacity,
+                    price: item.price,
+                    bookedUsers: item.booked_users || []
+                }));
+
+                if (currentRole === 'user') renderUserView();
+                else renderAdminView();
+            } catch (err) {
+                console.error('Supabase 載入錯誤:', err);
+                document.getElementById('user-available-count').innerText = '載入失敗，請確認 API Key';
+            }
+        }
+
+        window.onload = () => {
+            const todayStr = getTodayString();
+            document.getElementById('admin-date-picker').value = todayStr;
+            document.getElementById('user-month-filter').value = todayStr.substring(0, 7);
+
+            initTimeOptions();
+            fetchSlotsFromSupabase();
+        };
+
+        function switchRole(role) {
+            currentRole = role;
+            const btnUser = document.getElementById('btn-role-user');
+            const btnAdmin = document.getElementById('btn-role-admin');
+            const viewUser = document.getElementById('view-user');
+            const viewAdmin = document.getElementById('view-admin');
+
+            if (role === 'user') {
+                btnUser.className = "px-5 py-2 rounded-lg text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm";
+                btnAdmin.className = "px-5 py-2 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900 transition-all";
+                viewUser.classList.remove('hidden');
+                viewAdmin.classList.add('hidden');
+                renderUserView();
+            } else {
+                btnAdmin.className = "px-5 py-2 rounded-lg text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm";
+                btnUser.className = "px-5 py-2 rounded-lg text-sm font-bold text-slate-600 hover:text-slate-900 transition-all";
+                viewAdmin.classList.remove('hidden');
+                viewUser.classList.add('hidden');
+                renderAdminView();
+            }
+        }
+
+        // ======================= 使用者端邏輯 =======================
+        function renderUserView() {
+            const userName = document.getElementById('user-name-input').value.trim() || '訪客';
+            const selectedMonth = document.getElementById('user-month-filter').value;
+            const container = document.getElementById('user-slot-list');
+            const bookedContainer = document.getElementById('user-booked-list');
+            const todayStr = getTodayString();
+
+            let validSlots = slots.filter(s => s.date.startsWith(selectedMonth) && s.date >= todayStr);
+            validSlots = sortSlotsChronologically(validSlots);
+
+            document.getElementById('user-available-count').innerText = `共 ${validSlots.length} 個可預約時段`;
+
+            if (validSlots.length === 0) {
+                container.innerHTML = `<div class="col-span-2 text-center py-16 text-slate-400 bg-white rounded-2xl border border-slate-200 text-base font-medium">此月份尚無未過期的開放預約時段</div>`;
+            } else {
+                container.innerHTML = validSlots.map(s => {
+                    const isBooked = (s.bookedUsers || []).includes(userName);
+                    const isFull = (s.bookedUsers || []).length >= s.capacity && !isBooked;
+
+                    return `
+                        <div class="p-6 rounded-2xl border transition-all ${isBooked ? 'bg-indigo-50/60 border-indigo-300 ring-2 ring-indigo-500' : 'bg-white border-slate-200'} shadow-sm space-y-4">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <span class="text-sm font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-lg">${s.date}</span>
+                                    <h4 class="font-extrabold text-slate-900 text-lg mt-2 tracking-tight">${s.time}</h4>
+                                </div>
+                                <span class="text-xl font-black text-slate-900">NT$ ${s.price}</span>
+                            </div>
+
+                            <div class="flex items-center justify-between text-sm text-slate-500 pt-3 border-t border-slate-100">
+                                <span class="font-medium">剩餘名額：<strong class="text-base ${(s.capacity - (s.bookedUsers || []).length) <= 1 ? 'text-rose-600' : 'text-slate-800'} font-extrabold">${s.capacity - (s.bookedUsers || []).length}</strong> / ${s.capacity}</span>
+                                
+                                ${isBooked ? `
+                                    <button onclick="cancelBooking('${s.id}')" class="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold transition text-sm">
+                                        <i class="fa-solid fa-xmark mr-1"></i>取消預約
+                                    </button>
+                                ` : isFull ? `
+                                    <span class="px-4 py-2 rounded-xl bg-slate-100 text-slate-400 font-bold cursor-not-allowed text-sm">已額滿</span>
+                                ` : `
+                                    <button onclick="bookSlot('${s.id}')" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md transition text-sm">
+                                        <i class="fa-solid fa-plus mr-1"></i>預約報名
+                                    </button>
+                                `}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            const allUserMonthSlots = sortSlotsChronologically(slots.filter(s => s.date.startsWith(selectedMonth) && (s.bookedUsers || []).includes(userName)));
+            const totalFee = allUserMonthSlots.reduce((sum, item) => sum + item.price, 0);
+
+            document.getElementById('user-total-fee').innerText = totalFee.toLocaleString();
+            document.getElementById('user-booked-count').innerText = `${allUserMonthSlots.length} 場`;
+
+            if (allUserMonthSlots.length === 0) {
+                bookedContainer.innerHTML = `<p class="text-slate-400 text-center py-6 text-sm">本月尚未報名任何時段</p>`;
+            } else {
+                bookedContainer.innerHTML = allUserMonthSlots.map(s => {
+                    const isPast = s.date < todayStr;
+                    return `
+                        <div class="pt-3.5 first:pt-0 flex items-center justify-between">
+                            <div>
+                                <p class="font-bold text-slate-800 text-sm">
+                                    ${s.date} <span class="font-semibold text-slate-500">(${s.time})</span>
+                                    ${isPast ? '<span class="text-xs text-slate-400 ml-1 font-normal">[已結束]</span>' : ''}
+                                </p>
+                                <span class="text-xs text-slate-500 font-medium">費用：NT$ ${s.price}</span>
+                            </div>
+                            ${!isPast ? `
+                                <button onclick="cancelBooking('${s.id}')" class="text-rose-500 hover:text-rose-700 text-xs font-bold px-2 py-1 rounded hover:bg-rose-50 transition">取消</button>
+                            ` : '<span class="text-xs text-slate-400">已結算</span>'}
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // 使用者報名
+        async function bookSlot(slotId) {
+            const userName = document.getElementById('user-name-input').value.trim();
+            if (!userName) return alert('請先輸入預約人姓名！');
+
+            const target = slots.find(s => s.id === slotId);
+            if (!target) return;
+
+            const updatedUsers = [...(target.bookedUsers || []), userName];
+
+            const { error } = await supabaseClient
+                .from('slots')
+                .update({ booked_users: updatedUsers })
+                .eq('id', slotId);
+
+            if (error) return alert('預約失敗：' + error.message);
+            await fetchSlotsFromSupabase();
+        }
+
+        // 使用者取消
+        async function cancelBooking(slotId) {
+            const userName = document.getElementById('user-name-input').value.trim();
+            const target = slots.find(s => s.id === slotId);
+            if (!target) return;
+
+            const updatedUsers = (target.bookedUsers || []).filter(u => u !== userName);
+
+            const { error } = await supabaseClient
+                .from('slots')
+                .update({ booked_users: updatedUsers })
+                .eq('id', slotId);
+
+            if (error) return alert('取消失敗：' + error.message);
+            await fetchSlotsFromSupabase();
+        }
+
+        // ======================= 管理員端邏輯 =======================
+        function initTimeOptions() {
+            const startHour = document.getElementById('admin-start-hour');
+            const startMin = document.getElementById('admin-start-min');
+            const endHour = document.getElementById('admin-end-hour');
+            const endMin = document.getElementById('admin-end-min');
+            
+            if (!startHour || !startMin || !endHour || !endMin) return;
+
+            startHour.innerHTML = ''; endHour.innerHTML = '';
+            startMin.innerHTML = ''; endMin.innerHTML = '';
+
+            for (let h = 0; h < 24; h++) {
+                const hStr = String(h).padStart(2, '0');
+                startHour.innerHTML += `<option value="${hStr}">${hStr}</option>`;
+                endHour.innerHTML += `<option value="${hStr}">${hStr}</option>`;
+            }
+
+            for (let m = 0; m < 60; m += 5) {
+                const mStr = String(m).padStart(2, '0');
+                startMin.innerHTML += `<option value="${mStr}">${mStr}</option>`;
+                endMin.innerHTML += `<option value="${mStr}">${mStr}</option>`;
+            }
+
+            startHour.value = '09'; startMin.value = '00';
+            endHour.value = '10'; endMin.value = '00';
+        }
+
+        function autoAdjustEndTime() {
+            const sH = parseInt(document.getElementById('admin-start-hour').value);
+            const sM = parseInt(document.getElementById('admin-start-min').value);
+            
+            let totalMins = sH * 60 + sM + 60;
+            if (totalMins >= 24 * 60) totalMins = (24 * 60) - 5;
+
+            document.getElementById('admin-end-hour').value = String(Math.floor(totalMins / 60)).padStart(2, '0');
+            document.getElementById('admin-end-min').value = String(totalMins % 60).padStart(2, '0');
+        }
+
+        function addSelectedDate() {
+            const dateInput = document.getElementById('admin-date-picker');
+            const dateVal = dateInput.value;
+            if (!dateVal) return alert('請先選擇日期！');
+            if (selectedBatchDates.includes(dateVal)) return alert('該日期已在清單中！');
+
+            selectedBatchDates.push(dateVal);
+            selectedBatchDates.sort();
+            renderSelectedDates();
+        }
+
+        function removeSelectedDate(dateVal) {
+            selectedBatchDates = selectedBatchDates.filter(d => d !== dateVal);
+            renderSelectedDates();
+        }
+
+        function renderSelectedDates() {
+            const container = document.getElementById('selected-dates-container');
+            document.getElementById('selected-date-count').innerText = selectedBatchDates.length;
+
+            if (selectedBatchDates.length === 0) {
+                container.innerHTML = `<span class="text-slate-400 text-sm self-center px-2">尚未加入任何日期</span>`;
+                return;
+            }
+
+            container.innerHTML = selectedBatchDates.map(date => `
+                <span class="inline-flex items-center text-sm font-bold bg-indigo-50 text-indigo-700 px-3.5 py-1.5 rounded-xl border border-indigo-200 shadow-sm">
+                    <i class="fa-regular fa-calendar mr-1.5 text-indigo-500"></i>${date}
+                    <button type="button" onclick="removeSelectedDate('${date}')" class="ml-2.5 text-indigo-400 hover:text-rose-500 transition">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </span>
+            `).join('');
+        }
+
+        function renderAdminView() {
+            const tbody = document.getElementById('admin-slot-tbody');
+            const todayStr = getTodayString();
+            const sortedSlots = sortSlotsChronologically([...slots]);
+
+            if (sortedSlots.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-12 text-slate-400 text-base">目前尚無任何開放時段</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = sortedSlots.map(s => {
+                const isPast = s.date < todayStr;
+                const userList = s.bookedUsers || [];
+                return `
+                    <tr class="hover:bg-slate-50 transition ${isPast ? 'bg-slate-50/50 opacity-65' : ''}">
+                        <td class="px-6 py-4.5">
+                            <span class="font-extrabold text-slate-900 text-base">${s.date}</span>
+                            ${isPast ? '<span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded ml-1.5 font-bold">已過期</span>' : ''}
+                            <div class="text-slate-500 text-sm font-semibold mt-0.5">${s.time}</div>
+                        </td>
+                        <td class="px-6 py-4.5">
+                            <span class="px-3 py-1 rounded-lg text-xs font-extrabold ${userList.length >= s.capacity ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-700'}">
+                                ${userList.length} / ${s.capacity} 人
+                            </span>
+                        </td>
+                        <td class="px-6 py-4.5">
+                            <div class="flex items-center space-x-1.5">
+                                <span class="font-bold text-slate-500">NT$</span>
+                                <input type="number" value="${s.price}" min="0" 
+                                    onchange="updateSinglePrice('${s.id}', this.value)" 
+                                    class="w-24 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:outline-none focus:border-indigo-600 font-extrabold text-base">
+                            </div>
+                        </td>
+                        <td class="px-6 py-4.5">
+                            <span class="text-slate-700 font-medium text-sm">${userList.join(', ') || '<span class="text-slate-300 font-normal">無人報名</span>'}</span>
+                        </td>
+                        <td class="px-6 py-4.5 text-right">
+                            <button onclick="deleteSlot('${s.id}')" class="text-rose-500 hover:text-rose-700 font-bold text-sm px-3 py-1.5 rounded-lg hover:bg-rose-50 transition">
+                                <i class="fa-solid fa-trash mr-1"></i>刪除
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 批次建立時段
+        async function handleCreateSlots(e) {
+            e.preventDefault();
+            const sH = document.getElementById('admin-start-hour').value;
+            const sM = document.getElementById('admin-start-min').value;
+            const eH = document.getElementById('admin-end-hour').value;
+            const eM = document.getElementById('admin-end-min').value;
+
+            const startTime = `${sH}:${sM}`;
+            const endTime = `${eH}:${eM}`;
+
+            if ((parseInt(sH) * 60 + parseInt(sM)) >= (parseInt(eH) * 60 + parseInt(eM))) {
+                return alert(`結束時間 (${endTime}) 必須晚於開始時間 (${startTime})！`);
+            }
+            if (selectedBatchDates.length === 0) return alert('請至少加入一個開放日期！');
+
+            const capacity = parseInt(document.getElementById('admin-capacity').value);
+            const price = parseInt(document.getElementById('admin-price').value);
+            const timeFormatted = `${startTime} - ${endTime}`;
+
+            const rowsToInsert = selectedBatchDates.map(date => ({
+                date,
+                time: timeFormatted,
+                capacity,
+                price,
+                booked_users: []
+            }));
+
+            const { error } = await supabaseClient.from('slots').insert(rowsToInsert);
+            if (error) return alert('新增失敗：' + error.message);
+
+            selectedBatchDates = [];
+            renderSelectedDates();
+            await fetchSlotsFromSupabase();
+            alert(`已成功批次發布至 Supabase 雲端！`);
+        }
+
+        // 單獨修改某時段費用
+        async function updateSinglePrice(slotId, newPrice) {
+            const { error } = await supabaseClient
+                .from('slots')
+                .update({ price: Number(newPrice) })
+                .eq('id', slotId);
+
+            if (error) return alert('修改費用失敗：' + error.message);
+            await fetchSlotsFromSupabase();
+        }
+
+        // 整批修改全部時段費用
+        async function handleBatchUpdatePrice() {
+            const batchPrice = parseInt(document.getElementById('batch-price-input').value);
+            if (isNaN(batchPrice) || batchPrice < 0) return alert('請輸入有效的金額！');
+
+            if (confirm(`確定要將全部時段的費用統一改為 NT$ ${batchPrice} 嗎？`)) {
+                const { error } = await supabaseClient
+                    .from('slots')
+                    .update({ price: batchPrice })
+                    .neq('price', -1); // 更新全部資料列
+
+                if (error) return alert('整批修改失敗：' + error.message);
+                document.getElementById('batch-price-input').value = '';
+                await fetchSlotsFromSupabase();
+                alert('已完成整批費用調整！');
+            }
+        }
+
+        // 刪除時段
+        async function deleteSlot(slotId) {
+            if (confirm('確定要從雲端刪除此時段嗎？')) {
+                const { error } = await supabaseClient
+                    .from('slots')
+                    .delete()
+                    .eq('id', slotId);
+
+                if (error) return alert('刪除失敗：' + error.message);
+                await fetchSlotsFromSupabase();
+            }
+        }
+    </script>
+</body>
+</html>
