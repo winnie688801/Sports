@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>線上時段預約與費用試算系統 (含管理員編輯功能)</title>
+    <title>線上課程預約系統 (管理員篩選修正版)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome 圖示庫 -->
@@ -23,11 +23,11 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center space-x-3">
                 <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-100 flex-shrink-0">
-                    <i class="fa-solid fa-cloud-bolt text-xl sm:text-2xl"></i>
+                    <i class="fa-solid fa-graduation-cap text-xl sm:text-2xl"></i>
                 </div>
                 <div>
-                    <h1 class="font-extrabold text-lg sm:text-2xl text-slate-900 leading-tight">時段預約系統</h1>
-                    <p class="text-xs sm:text-sm text-slate-500 font-medium">雲端資料同步版</p>
+                    <h1 class="font-extrabold text-lg sm:text-2xl text-slate-900 leading-tight">課程預約系統</h1>
+                    <p class="text-xs sm:text-sm text-slate-500 font-medium">雲端資料同步與即時月結試算</p>
                 </div>
             </div>
 
@@ -40,7 +40,7 @@
                 <div id="admin-logged-controls" class="hidden flex items-center space-x-1.5 sm:space-x-3">
                     <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
                         <button id="btn-role-user" onclick="switchRole('user')" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm">
-                            <i class="fa-solid fa-user mr-1"></i>使用者
+                            <i class="fa-solid fa-user mr-1"></i>學員端
                         </button>
                         <button id="btn-role-admin" onclick="switchRole('admin')" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 transition-all">
                             <i class="fa-solid fa-user-shield mr-1"></i>後台
@@ -59,7 +59,7 @@
 
         <!-- ======================= 1. 一般使用者介面 ======================= -->
         <div id="view-user" class="space-y-6 sm:space-y-8">
-            <div class="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div class="flex items-center space-x-3 sm:space-x-4">
                     <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl sm:text-2xl font-bold flex-shrink-0">
                         <i class="fa-regular fa-circle-user"></i>
@@ -70,14 +70,22 @@
                     </div>
                 </div>
 
-                <div class="flex items-center justify-between sm:justify-end space-x-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                    <label class="text-xs sm:text-base font-bold text-slate-700 whitespace-nowrap">檢視月份：</label>
-                    <input type="month" id="user-month-filter" class="text-xs sm:text-base bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 text-slate-800 focus:outline-none focus:border-indigo-600 font-medium" onchange="renderUserView()">
+                <!-- 篩選列 -->
+                <div class="flex flex-wrap items-center gap-3 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
+                    <div class="flex items-center space-x-2">
+                        <label class="text-xs sm:text-sm font-bold text-slate-700 whitespace-nowrap">月份：</label>
+                        <input type="month" id="user-month-filter" class="text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 text-slate-800 focus:outline-none focus:border-indigo-600 font-medium" onchange="renderUserView()">
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <label class="text-xs sm:text-sm font-bold text-slate-700 whitespace-nowrap">課程：</label>
+                        <select id="user-course-filter" class="text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 text-slate-800 focus:outline-none focus:border-indigo-600 font-bold" onchange="renderUserView()">
+                            <option value="ALL">全部課程</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-                <!-- 左側 2 欄：可預約時段清單 -->
                 <div class="lg:col-span-2 space-y-4 sm:space-y-5">
                     <div class="space-y-2">
                         <h2 class="font-extrabold text-slate-900 text-lg sm:text-xl flex items-center">
@@ -91,7 +99,6 @@
                     <div id="user-slot-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5"></div>
                 </div>
 
-                <!-- 右側 1 欄：當月帳單試算 -->
                 <div class="lg:col-span-1 space-y-6">
                     <div class="bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white p-6 sm:p-7 rounded-2xl shadow-xl">
                         <span class="text-xs sm:text-sm text-indigo-300 font-semibold tracking-wide">當月費用試算 (應繳金額)</span>
@@ -122,16 +129,20 @@
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4 gap-2">
                     <div>
                         <h2 class="font-extrabold text-slate-900 text-base sm:text-lg flex items-center">
-                            <i class="fa-solid fa-plus-circle text-indigo-600 mr-2"></i>開放新時段設定
+                            <i class="fa-solid fa-plus-circle text-indigo-600 mr-2"></i>開放新課程時段設定
                         </h2>
-                        <p class="text-xs sm:text-sm text-slate-500 mt-0.5">先設定起訖時間，再多選日期批次儲存至雲端</p>
+                        <p class="text-xs sm:text-sm text-slate-500 mt-0.5">填寫課程名稱、起訖時間與多選日期進行批次發布</p>
                     </div>
                     <span class="text-xs text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full font-bold self-start sm:self-auto">5 分鐘單位</span>
                 </div>
 
                 <form id="admin-create-form" onsubmit="handleCreateSlots(event)" class="space-y-5">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <!-- 開始時間 -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <div class="sm:col-span-2 lg:col-span-1">
+                            <label class="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">課程名稱</label>
+                            <input type="text" id="admin-course-name" required placeholder="如：瑜珈初階班" class="w-full text-sm sm:text-base bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:border-indigo-600 focus:outline-none font-bold text-slate-800">
+                        </div>
+
                         <div>
                             <label class="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">開始時間</label>
                             <div class="flex items-center space-x-2 bg-slate-50 border border-slate-300 rounded-xl p-2 sm:p-2.5 focus-within:border-indigo-600 focus-within:bg-white transition">
@@ -141,7 +152,6 @@
                             </div>
                         </div>
 
-                        <!-- 結束時間 -->
                         <div>
                             <label class="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">結束時間</label>
                             <div class="flex items-center space-x-2 bg-slate-50 border border-slate-300 rounded-xl p-2 sm:p-2.5 focus-within:border-indigo-600 focus-within:bg-white transition">
@@ -151,20 +161,17 @@
                             </div>
                         </div>
 
-                        <!-- 人數上限 -->
                         <div>
                             <label class="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">每場人數上限</label>
-                            <input type="number" id="admin-capacity" min="1" value="5" required class="w-full text-sm sm:text-base bg-slate-50 border border-slate-300 rounded-xl p-2 sm:p-2.5 focus:border-indigo-600 focus:outline-none font-semibold">
+                            <input type="number" id="admin-capacity" min="1" value="5" required class="w-full text-sm sm:text-base bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:border-indigo-600 focus:outline-none font-semibold">
                         </div>
 
-                        <!-- 單場費用 -->
                         <div>
                             <label class="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">預設單場費用 (NT$)</label>
-                            <input type="number" id="admin-price" min="0" value="270" required class="w-full text-sm sm:text-base bg-slate-50 border border-slate-300 rounded-xl p-2 sm:p-2.5 focus:border-indigo-600 focus:outline-none font-semibold">
+                            <input type="number" id="admin-price" min="0" value="270" required class="w-full text-sm sm:text-base bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:border-indigo-600 focus:outline-none font-semibold">
                         </div>
                     </div>
 
-                    <!-- 多選日期 -->
                     <div class="space-y-3 pt-3 border-t border-slate-100">
                         <label class="block text-xs sm:text-sm font-bold text-slate-700">選擇欲開放的日期（可多選）</label>
                         <div class="flex flex-wrap items-center gap-2.5">
@@ -188,26 +195,48 @@
                 </form>
             </div>
 
-            <!-- 時段管理清單 -->
+            <!-- 時段管理清單與篩選器 -->
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-4">
-                <div class="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <h3 class="font-extrabold text-slate-900 text-base sm:text-lg flex items-center">
-                        <i class="fa-solid fa-list-check text-slate-700 mr-2"></i>開放時段管理清單
-                    </h3>
-                    <div class="flex items-center space-x-2 bg-slate-50 p-2 rounded-xl border border-slate-200 self-start sm:self-auto">
-                        <span class="text-xs sm:text-sm font-bold text-slate-700 whitespace-nowrap">整批調費：</span>
-                        <input type="number" id="batch-price-input" placeholder="金額" class="w-20 sm:w-24 text-xs sm:text-sm bg-white border border-slate-300 rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-600 font-semibold">
-                        <button onclick="handleBatchUpdatePrice()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs sm:text-sm px-3 py-1 rounded-lg transition font-bold whitespace-nowrap">
-                            套用
-                        </button>
+                <div class="p-5 sm:p-6 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div>
+                        <h3 class="font-extrabold text-slate-900 text-base sm:text-lg flex items-center">
+                            <i class="fa-solid fa-list-check text-slate-700 mr-2"></i>開放時段管理清單
+                        </h3>
+                        <p id="admin-filtered-count" class="text-xs text-slate-400 mt-0.5">載入中...</p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <!-- 月份篩選 -->
+                        <div class="flex items-center space-x-1.5 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+                            <span class="text-xs font-bold text-slate-600 whitespace-nowrap"><i class="fa-regular fa-calendar mr-1"></i>月份：</span>
+                            <input type="month" id="admin-month-filter" class="text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1 focus:outline-none focus:border-indigo-600 font-medium" onchange="renderAdminView()">
+                            <button type="button" onclick="clearAdminMonthFilter()" class="text-xs text-slate-400 hover:text-slate-600 px-1 font-bold" title="顯示全部月份">全部</button>
+                        </div>
+
+                        <!-- 課程篩選 -->
+                        <div class="flex items-center space-x-1.5 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+                            <span class="text-xs font-bold text-slate-600 whitespace-nowrap"><i class="fa-solid fa-graduation-cap mr-1"></i>課程：</span>
+                            <select id="admin-course-filter" class="text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1 focus:outline-none focus:border-indigo-600 font-bold" onchange="renderAdminView()">
+                                <option value="ALL">全部課程</option>
+                            </select>
+                        </div>
+
+                        <!-- 整批調費 -->
+                        <div class="flex items-center space-x-1.5 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+                            <span class="text-xs font-bold text-slate-700 whitespace-nowrap">整批調費：</span>
+                            <input type="number" id="batch-price-input" placeholder="金額" class="w-16 sm:w-20 text-xs bg-white border border-slate-300 rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-600 font-semibold">
+                            <button onclick="handleBatchUpdatePrice()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs px-2.5 py-1 rounded-lg transition font-bold whitespace-nowrap">
+                                套用
+                            </button>
+                        </div>
                     </div>
                 </div>
 
                 <div class="overflow-x-auto w-full">
-                    <table class="w-full text-left text-xs sm:text-sm text-slate-600 min-w-[620px]">
+                    <table class="w-full text-left text-xs sm:text-sm text-slate-600 min-w-[680px]">
                         <thead class="bg-slate-50 text-slate-800 uppercase font-bold border-b border-slate-200 text-[11px] sm:text-xs tracking-wider">
                             <tr>
-                                <th class="px-4 py-3 sm:px-6 sm:py-4">日期 / 時段</th>
+                                <th class="px-4 py-3 sm:px-6 sm:py-4">課程名稱 / 時段</th>
                                 <th class="px-4 py-3 sm:px-6 sm:py-4">名額狀態</th>
                                 <th class="px-4 py-3 sm:px-6 sm:py-4">單場費用 (NT$)</th>
                                 <th class="px-4 py-3 sm:px-6 sm:py-4">已報名名單</th>
@@ -272,13 +301,19 @@
             <form onsubmit="handleSaveEditedSlot(event)" class="space-y-4">
                 <input type="hidden" id="edit-slot-id">
 
-                <!-- 編輯日期 -->
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block text-xs sm:text-sm font-bold text-slate-700">課程名稱</label>
+                        <span class="text-[11px] text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded"><i class="fa-solid fa-lock mr-1"></i>名稱不可變更</span>
+                    </div>
+                    <input type="text" id="edit-course-name" readonly disabled class="w-full text-sm sm:text-base bg-slate-100 border border-slate-200 rounded-xl p-2.5 font-bold text-slate-500 cursor-not-allowed">
+                </div>
+
                 <div>
                     <label class="block text-xs sm:text-sm font-bold text-slate-700 mb-1">開放日期</label>
                     <input type="date" id="edit-date" required class="w-full text-sm sm:text-base bg-slate-50 border border-slate-300 rounded-xl p-2.5 focus:outline-none focus:border-indigo-600 font-medium">
                 </div>
 
-                <!-- 編輯時間 -->
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs sm:text-sm font-bold text-slate-700 mb-1">開始時間</label>
@@ -298,7 +333,6 @@
                     </div>
                 </div>
 
-                <!-- 編輯名額上限與費用 -->
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs sm:text-sm font-bold text-slate-700 mb-1">人數上限</label>
@@ -354,12 +388,13 @@
 
         function sortSlotsChronologically(slotArray) {
             return slotArray.sort((a, b) => {
-                const aTime = a.time.split(' - ')[0] || '00:00';
-                const bTime = b.time.split(' - ')[0] || '00:00';
+                const aTime = (a.time || '').split(' - ')[0] || '00:00';
+                const bTime = (b.time || '').split(' - ')[0] || '00:00';
                 return new Date(`${a.date}T${aTime}`) - new Date(`${b.date}T${bTime}`);
             });
         }
 
+        // 從 Supabase 抓取資料並自動格式化
         async function fetchSlotsFromSupabase() {
             try {
                 const { data, error } = await supabaseClient
@@ -368,21 +403,59 @@
 
                 if (error) throw error;
 
+                // 強化相容：同時支援 course_name 與 courseName
                 slots = (data || []).map(item => ({
                     id: item.id,
+                    courseName: item.course_name || item.courseName || '一般課程',
                     date: item.date,
                     time: item.time,
                     capacity: item.capacity,
                     price: item.price,
-                    bookedUsers: item.booked_users || []
+                    bookedUsers: item.booked_users || item.bookedUsers || []
                 }));
+
+                updateCourseFilterDropdown();
 
                 if (currentRole === 'user') renderUserView();
                 else renderAdminView();
             } catch (err) {
                 console.error('Supabase 載入錯誤:', err);
-                document.getElementById('user-available-count').innerText = '載入失敗，請檢查 API Key';
+                const countBadge = document.getElementById('user-available-count');
+                if (countBadge) countBadge.innerText = '載入失敗，請檢查 API Key';
             }
+        }
+
+        // 更新課程篩選下拉選單 (同時更新使用者與管理員選單)
+        function updateCourseFilterDropdown() {
+            const userSelect = document.getElementById('user-course-filter');
+            const adminSelect = document.getElementById('admin-course-filter');
+            
+            const currentUserSelected = userSelect ? userSelect.value : 'ALL';
+            const currentAdminSelected = adminSelect ? adminSelect.value : 'ALL';
+
+            const uniqueCourses = Array.from(new Set(slots.map(s => s.courseName).filter(Boolean)));
+
+            if (userSelect) {
+                userSelect.innerHTML = `<option value="ALL">全部課程 (${uniqueCourses.length} 類)</option>`;
+                uniqueCourses.forEach(name => {
+                    userSelect.innerHTML += `<option value="${name}">${name}</option>`;
+                });
+                if (uniqueCourses.includes(currentUserSelected)) userSelect.value = currentUserSelected;
+            }
+
+            if (adminSelect) {
+                adminSelect.innerHTML = `<option value="ALL">全部課程 (${uniqueCourses.length} 類)</option>`;
+                uniqueCourses.forEach(name => {
+                    adminSelect.innerHTML += `<option value="${name}">${name}</option>`;
+                });
+                if (uniqueCourses.includes(currentAdminSelected)) adminSelect.value = currentAdminSelected;
+            }
+        }
+
+        function clearAdminMonthFilter() {
+            const monthInput = document.getElementById('admin-month-filter');
+            if (monthInput) monthInput.value = '';
+            renderAdminView();
         }
 
         window.onload = () => {
@@ -400,7 +473,7 @@
             fetchSlotsFromSupabase();
         };
 
-        // 登入相關
+        // 登入驗證
         function openLoginModal() {
             document.getElementById('login-modal').classList.remove('hidden');
         }
@@ -484,16 +557,21 @@
         function renderUserView() {
             const userName = document.getElementById('user-name-input').value.trim() || '訪客';
             const selectedMonth = document.getElementById('user-month-filter').value;
+            const selectedCourse = document.getElementById('user-course-filter')?.value || 'ALL';
             const container = document.getElementById('user-slot-list');
             const bookedContainer = document.getElementById('user-booked-list');
             const countContainer = document.getElementById('user-available-count');
             const todayStr = getTodayString();
 
-            let validSlots = slots.filter(s => s.date.startsWith(selectedMonth) && s.date >= todayStr);
+            let validSlots = slots.filter(s => {
+                const inMonth = s.date.startsWith(selectedMonth);
+                const notExpired = s.date >= todayStr;
+                const matchCourse = selectedCourse === 'ALL' || s.courseName === selectedCourse;
+                return inMonth && notExpired && matchCourse;
+            });
             validSlots = sortSlotsChronologically(validSlots);
 
             let availableCount = 0, fullCount = 0, almostFullCount = 0;
-
             validSlots.forEach(s => {
                 const bookedNum = (s.bookedUsers || []).length;
                 const remaining = s.capacity - bookedNum;
@@ -503,20 +581,22 @@
                 if (s.capacity > 1 && remaining === 1) almostFullCount++;
             });
 
-            countContainer.innerHTML = `
-                <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full whitespace-nowrap">
-                    ${availableCount} 個可預約 (未滿)
-                </span>
-                <span class="bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-full whitespace-nowrap">
-                    ${fullCount} 個已額滿
-                </span>
-                <span class="bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-full whitespace-nowrap">
-                    ${almostFullCount} 個將額滿 (剩1名)
-                </span>
-            `;
+            if (countContainer) {
+                countContainer.innerHTML = `
+                    <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full whitespace-nowrap">
+                        ${availableCount} 個可預約 (未滿)
+                    </span>
+                    <span class="bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-full whitespace-nowrap">
+                        ${fullCount} 個已額滿
+                    </span>
+                    <span class="bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-full whitespace-nowrap">
+                        ${almostFullCount} 個將額滿 (剩1名)
+                    </span>
+                `;
+            }
 
             if (validSlots.length === 0) {
-                container.innerHTML = `<div class="col-span-2 text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200 text-sm sm:text-base font-medium">此月份尚無未過期的開放預約時段</div>`;
+                container.innerHTML = `<div class="col-span-2 text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200 text-sm sm:text-base font-medium">此條件下尚無未過期的開放預約時段</div>`;
             } else {
                 container.innerHTML = validSlots.map(s => {
                     const isBooked = (s.bookedUsers || []).includes(userName);
@@ -528,7 +608,10 @@
                         <div class="p-5 sm:p-6 rounded-2xl border transition-all ${isBooked ? 'bg-indigo-50/60 border-indigo-300 ring-2 ring-indigo-500' : 'bg-white border-slate-200'} shadow-sm space-y-3">
                             <div class="flex justify-between items-start">
                                 <div>
-                                    <span class="text-xs sm:text-sm font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-0.5 rounded-lg">${s.date}</span>
+                                    <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                                        <span class="text-xs font-black text-white bg-indigo-600 px-2.5 py-0.5 rounded-lg">${s.courseName}</span>
+                                        <span class="text-xs font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-0.5 rounded-lg">${s.date}</span>
+                                    </div>
                                     <h4 class="font-extrabold text-slate-900 text-base sm:text-lg mt-1.5 tracking-tight">${s.time}</h4>
                                 </div>
                                 <div class="text-right">
@@ -548,9 +631,15 @@
                                     <span class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-slate-100 text-slate-400 font-bold cursor-not-allowed text-xs sm:text-sm">已額滿</span>
                                 ` : `
                                     <button onclick="bookSlot('${s.id}')" class="px-4 py-1.5 sm:px-5 sm:py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md transition text-xs sm:text-sm">
-                                        <i class="fa-solid fa-plus mr-1"></i>預約報名
+                                        <i class="fa-solid fa-plus mr-1"></i>單場預約
                                     </button>
                                 `}
+                            </div>
+
+                            <div class="pt-1">
+                                <button onclick="bookAllCourseSlots('${s.courseName}')" class="w-full text-center py-1.5 text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50/80 rounded-lg transition font-bold border border-dashed border-indigo-200">
+                                    <i class="fa-solid fa-layer-group mr-1"></i>批次報名「${s.courseName}」所有時段
+                                </button>
                             </div>
                         </div>
                     `;
@@ -572,7 +661,7 @@
                         <div class="pt-3 first:pt-0 flex items-center justify-between">
                             <div>
                                 <p class="font-bold text-slate-800 text-xs sm:text-sm">
-                                    ${s.date} <span class="font-semibold text-slate-500">(${s.time})</span>
+                                    <span class="text-indigo-600 mr-1">[${s.courseName}]</span>${s.date} <span class="font-semibold text-slate-500">(${s.time})</span>
                                     ${isPast ? '<span class="text-[10px] text-slate-400 ml-1 font-normal">[已結束]</span>' : ''}
                                 </p>
                                 <span class="text-xs text-slate-500 font-medium">費用：NT$ ${s.price}</span>
@@ -602,6 +691,43 @@
 
             if (error) return alert('預約失敗：' + error.message);
             await fetchSlotsFromSupabase();
+        }
+
+        async function bookAllCourseSlots(courseName) {
+            const userName = document.getElementById('user-name-input').value.trim();
+            if (!userName) return alert('請先輸入預約人姓名！');
+
+            const todayStr = getTodayString();
+            const selectedMonth = document.getElementById('user-month-filter').value;
+
+            const targetSlots = slots.filter(s => 
+                s.courseName === courseName &&
+                s.date.startsWith(selectedMonth) &&
+                s.date >= todayStr &&
+                !(s.bookedUsers || []).includes(userName) &&
+                (s.bookedUsers || []).length < s.capacity
+            );
+
+            if (targetSlots.length === 0) {
+                return alert(`目前當月份沒有可供批次報名的「${courseName}」時段！`);
+            }
+
+            if (!confirm(`確定要一次報名 ${targetSlots.length} 個「${courseName}」的時段嗎？`)) return;
+
+            try {
+                for (const slot of targetSlots) {
+                    const updatedUsers = [...(slot.bookedUsers || []), userName];
+                    await supabaseClient
+                        .from('slots')
+                        .update({ booked_users: updatedUsers })
+                        .eq('id', slot.id);
+                }
+
+                alert(`已成功批次報名 ${targetSlots.length} 場「${courseName}」課程！`);
+                await fetchSlotsFromSupabase();
+            } catch (err) {
+                alert('批次報名發生錯誤：' + err.message);
+            }
         }
 
         async function cancelBooking(slotId) {
@@ -648,7 +774,6 @@
             endHour.value = '10'; endMin.value = '00';
         }
 
-        // 編輯彈窗的下拉選單初始化
         function initEditTimeOptions() {
             const startHour = document.getElementById('edit-start-hour');
             const startMin = document.getElementById('edit-start-min');
@@ -719,13 +844,31 @@
             `).join('');
         }
 
+        // 管理員清單渲染 (加入健壯的篩選容錯處理)
         function renderAdminView() {
             const tbody = document.getElementById('admin-slot-tbody');
+            if (!tbody) return;
+
             const todayStr = getTodayString();
-            const sortedSlots = sortSlotsChronologically([...slots]);
+            const selectedMonth = document.getElementById('admin-month-filter')?.value || '';
+            const selectedCourse = document.getElementById('admin-course-filter')?.value || 'ALL';
+            const countLabel = document.getElementById('admin-filtered-count');
+
+            // 依月份與課程名稱過濾
+            let filteredSlots = slots.filter(s => {
+                const matchMonth = !selectedMonth || (s.date && s.date.startsWith(selectedMonth));
+                const matchCourse = selectedCourse === 'ALL' || s.courseName === selectedCourse;
+                return matchMonth && matchCourse;
+            });
+
+            const sortedSlots = sortSlotsChronologically(filteredSlots);
+
+            if (countLabel) {
+                countLabel.innerText = `共顯示 ${sortedSlots.length} 筆時段（總時段數：${slots.length}）`;
+            }
 
             if (sortedSlots.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-slate-400 text-sm">目前尚無任何開放時段</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-slate-400 text-sm">此篩選條件下查無任何開放時段</td></tr>`;
                 return;
             }
 
@@ -735,6 +878,7 @@
                 return `
                     <tr class="hover:bg-slate-50 transition ${isPast ? 'bg-slate-50/50 opacity-65' : ''}">
                         <td class="px-4 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
+                            <span class="text-xs font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded mr-1">${s.courseName}</span>
                             <span class="font-extrabold text-slate-900 text-sm sm:text-base">${s.date}</span>
                             ${isPast ? '<span class="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded ml-1 font-bold">已過期</span>' : ''}
                             <div class="text-slate-500 text-xs sm:text-sm font-semibold mt-0.5">${s.time}</div>
@@ -756,11 +900,9 @@
                             <span class="text-slate-700 font-medium text-xs sm:text-sm leading-relaxed">${userList.join(', ') || '<span class="text-slate-300 font-normal">無人報名</span>'}</span>
                         </td>
                         <td class="px-4 py-3 sm:px-6 sm:py-4 text-right whitespace-nowrap space-x-1.5">
-                            <!-- 編輯按鈕 -->
                             <button onclick="openEditModal('${s.id}')" class="text-amber-600 hover:text-amber-800 font-bold text-xs sm:text-sm px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 transition">
                                 <i class="fa-solid fa-pen-to-square mr-1"></i>編輯
                             </button>
-                            <!-- 刪除按鈕 -->
                             <button onclick="deleteSlot('${s.id}')" class="text-rose-500 hover:text-rose-700 font-bold text-xs sm:text-sm px-2.5 py-1 rounded-lg hover:bg-rose-50 transition">
                                 <i class="fa-solid fa-trash mr-1"></i>刪除
                             </button>
@@ -770,8 +912,10 @@
             }).join('');
         }
 
+        // 管理員建立時段
         async function handleCreateSlots(e) {
             e.preventDefault();
+            const courseName = document.getElementById('admin-course-name').value.trim() || '一般課程';
             const sH = document.getElementById('admin-start-hour').value;
             const sM = document.getElementById('admin-start-min').value;
             const eH = document.getElementById('admin-end-hour').value;
@@ -790,6 +934,7 @@
             const timeFormatted = `${startTime} - ${endTime}`;
 
             const rowsToInsert = selectedBatchDates.map(date => ({
+                course_name: courseName,
                 date,
                 time: timeFormatted,
                 capacity,
@@ -803,29 +948,29 @@
             selectedBatchDates = [];
             renderSelectedDates();
             await fetchSlotsFromSupabase();
-            alert(`已成功批次發布至雲端！`);
+            alert(`已成功批次發布 ${rowsToInsert.length} 個「${courseName}」時段！`);
         }
 
-        // ======================= 編輯功能邏輯 =======================
+        // 編輯彈窗邏輯
         function openEditModal(slotId) {
             const slot = slots.find(s => s.id === slotId);
             if (!slot) return;
 
             document.getElementById('edit-slot-id').value = slot.id;
+            document.getElementById('edit-course-name').value = slot.courseName;
             document.getElementById('edit-date').value = slot.date;
             document.getElementById('edit-capacity').value = slot.capacity;
             document.getElementById('edit-price').value = slot.price;
 
-            // 拆解時間格式 "HH:MM - HH:MM"
-            const timeParts = slot.time.split(' - ');
+            const timeParts = (slot.time || '').split(' - ');
             if (timeParts.length === 2) {
                 const [startH, startM] = timeParts[0].split(':');
                 const [endH, endM] = timeParts[1].split(':');
 
-                document.getElementById('edit-start-hour').value = startH;
-                document.getElementById('edit-start-min').value = startM;
-                document.getElementById('edit-end-hour').value = endH;
-                document.getElementById('edit-end-min').value = endM;
+                document.getElementById('edit-start-hour').value = startH || '09';
+                document.getElementById('edit-start-min').value = startM || '00';
+                document.getElementById('edit-end-hour').value = endH || '10';
+                document.getElementById('edit-end-min').value = endM || '00';
             }
 
             const bookedCount = (slot.bookedUsers || []).length;
@@ -854,12 +999,10 @@
             const startTime = `${sH}:${sM}`;
             const endTime = `${eH}:${eM}`;
 
-            // 驗證時間
             if ((parseInt(sH) * 60 + parseInt(sM)) >= (parseInt(eH) * 60 + parseInt(eM))) {
                 return alert(`結束時間 (${endTime}) 必須晚於開始時間 (${startTime})！`);
             }
 
-            // 驗證人數上限不可低於已報名人數
             const currentSlot = slots.find(s => s.id === slotId);
             const bookedCount = (currentSlot?.bookedUsers || []).length;
             if (newCapacity < bookedCount) {
@@ -868,7 +1011,6 @@
 
             const timeFormatted = `${startTime} - ${endTime}`;
 
-            // 更新至 Supabase
             const { error } = await supabaseClient
                 .from('slots')
                 .update({
@@ -879,9 +1021,7 @@
                 })
                 .eq('id', slotId);
 
-            if (error) {
-                return alert('更新失敗：' + error.message);
-            }
+            if (error) return alert('更新失敗：' + error.message);
 
             closeEditModal();
             await fetchSlotsFromSupabase();
