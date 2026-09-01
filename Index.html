@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>線上課程預約系統 (管理員篩選修正版)</title>
+    <title>線上課程預約系統</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome 圖示庫 -->
@@ -64,9 +64,9 @@
                     <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl sm:text-2xl font-bold flex-shrink-0">
                         <i class="fa-regular fa-circle-user"></i>
                     </div>
-                    <div class="flex-grow">
-                        <label class="text-xs sm:text-sm text-slate-500 font-medium">當前預約人姓名</label>
-                        <input type="text" id="user-name-input" value="" class="w-full font-extrabold text-slate-900 text-lg sm:text-xl focus:outline-none border-b-2 border-dashed border-slate-300 focus:border-indigo-600 bg-transparent py-0.5" onchange="renderUserView()">
+                    <div>
+                        <label class="text-xs sm:text-sm text-slate-500 font-medium">預約人姓名（支援使用逗號或頓號分開輸入多位）</label>
+                        <input type="text" id="user-name-input" value="" placeholder="如：王小明、蔡小華" class="w-full font-extrabold text-slate-900 text-lg sm:text-xl focus:outline-none border-b-2 border-dashed border-slate-300 focus:border-indigo-600 bg-transparent py-0.5" oninput="renderUserView()">
                     </div>
                 </div>
 
@@ -555,7 +555,7 @@
 
         // ======================= 使用者端邏輯 =======================
         function renderUserView() {
-            const userName = document.getElementById('user-name-input').value.trim() || '訪客';
+            const inputNames = parseInputNames();
             const selectedMonth = document.getElementById('user-month-filter').value;
             const selectedCourse = document.getElementById('user-course-filter')?.value || 'ALL';
             const container = document.getElementById('user-slot-list');
@@ -564,23 +564,24 @@
             const todayStr = getTodayString();
 
             let validSlots = slots.filter(s => {
-                const inMonth = s.date.startsWith(selectedMonth);
+                const inMonth = s.date && s.date.startsWith(selectedMonth);
                 const notExpired = s.date >= todayStr;
                 const matchCourse = selectedCourse === 'ALL' || s.courseName === selectedCourse;
                 return inMonth && notExpired && matchCourse;
             });
             validSlots = sortSlotsChronologically(validSlots);
-
+        
+            // 統計徽章
             let availableCount = 0, fullCount = 0, almostFullCount = 0;
             validSlots.forEach(s => {
                 const bookedNum = (s.bookedUsers || []).length;
                 const remaining = s.capacity - bookedNum;
                 if (remaining > 0) availableCount++;
                 else fullCount++;
-
+            
                 if (s.capacity > 1 && remaining === 1) almostFullCount++;
             });
-
+        
             if (countContainer) {
                 countContainer.innerHTML = `
                     <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full whitespace-nowrap">
@@ -594,18 +595,21 @@
                     </span>
                 `;
             }
-
+        
             if (validSlots.length === 0) {
                 container.innerHTML = `<div class="col-span-2 text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200 text-sm sm:text-base font-medium">此條件下尚無未過期的開放預約時段</div>`;
             } else {
                 container.innerHTML = validSlots.map(s => {
-                    const isBooked = (s.bookedUsers || []).includes(userName);
-                    const remaining = s.capacity - (s.bookedUsers || []).length;
-                    const isFull = remaining <= 0 && !isBooked;
-                    const isAlmostFull = s.capacity > 1 && remaining === 1 && !isBooked;
-
+                    const bookedList = s.bookedUsers || [];
+                    // 判斷當前輸入的姓名中，有哪些人已經報名此場
+                    const myBookedInThisSlot = inputNames.filter(name => bookedList.includes(name));
+                    const isFullyBookedByMe = inputNames.length > 0 && myBookedInThisSlot.length === inputNames.length;
+                    const remaining = s.capacity - bookedList.length;
+                    const isFull = remaining <= 0 && myBookedInThisSlot.length === 0;
+                    const isAlmostFull = s.capacity > 1 && remaining === 1 && myBookedInThisSlot.length === 0;
+                
                     return `
-                        <div class="p-5 sm:p-6 rounded-2xl border transition-all ${isBooked ? 'bg-indigo-50/60 border-indigo-300 ring-2 ring-indigo-500' : 'bg-white border-slate-200'} shadow-sm space-y-3">
+                        <div class="p-5 sm:p-6 rounded-2xl border transition-all ${myBookedInThisSlot.length > 0 ? 'bg-indigo-50/60 border-indigo-300 ring-2 ring-indigo-500' : 'bg-white border-slate-200'} shadow-sm space-y-3">
                             <div class="flex justify-between items-start">
                                 <div>
                                     <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
@@ -619,43 +623,61 @@
                                     ${isAlmostFull ? '<span class="block text-[11px] font-bold text-amber-600 mt-0.5">即將額滿</span>' : ''}
                                 </div>
                             </div>
-
+                        
                             <div class="flex items-center justify-between text-xs sm:text-sm text-slate-500 pt-2.5 border-t border-slate-100">
                                 <span class="font-medium">名額：<strong class="text-sm sm:text-base ${remaining <= 1 ? 'text-rose-600' : 'text-slate-800'} font-extrabold">${remaining}</strong> / ${s.capacity}</span>
-                                
-                                ${isBooked ? `
+
+                                ${myBookedInThisSlot.length > 0 ? `
                                     <button onclick="cancelBooking('${s.id}')" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold transition text-xs sm:text-sm">
-                                        <i class="fa-solid fa-xmark mr-1"></i>取消預約
+                                        <i class="fa-solid fa-xmark mr-1"></i>取消預約 (${myBookedInThisSlot.length}人)
                                     </button>
                                 ` : isFull ? `
                                     <span class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-slate-100 text-slate-400 font-bold cursor-not-allowed text-xs sm:text-sm">已額滿</span>
                                 ` : `
                                     <button onclick="bookSlot('${s.id}')" class="px-4 py-1.5 sm:px-5 sm:py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md transition text-xs sm:text-sm">
-                                        <i class="fa-solid fa-plus mr-1"></i>單場預約
+                                        <i class="fa-solid fa-plus mr-1"></i>預約報名 ${inputNames.length > 1 ? `(${inputNames.length}人)` : ''}
                                     </button>
                                 `}
                             </div>
-
+                        
                             <div class="pt-1">
                                 <button onclick="bookAllCourseSlots('${s.courseName}')" class="w-full text-center py-1.5 text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50/80 rounded-lg transition font-bold border border-dashed border-indigo-200">
-                                    <i class="fa-solid fa-layer-group mr-1"></i>批次報名「${s.courseName}」所有時段
+                                    <i class="fa-solid fa-layer-group mr-1"></i>批次報名「${s.courseName}」所有時段 ${inputNames.length > 1 ? `(${inputNames.length}人)` : ''}
                                 </button>
                             </div>
                         </div>
                     `;
                 }).join('');
             }
-
-            const allUserMonthSlots = sortSlotsChronologically(slots.filter(s => s.date.startsWith(selectedMonth) && (s.bookedUsers || []).includes(userName)));
-            const totalFee = allUserMonthSlots.reduce((sum, item) => sum + item.price, 0);
-
+        
+            // 計算當月所有已報名人次與應繳總金額
+            let totalFee = 0;
+            let totalBookedHeadcount = 0;
+            const bookedDetails = [];
+        
+            slots.filter(s => s.date && s.date.startsWith(selectedMonth)).forEach(s => {
+                const bookedList = s.bookedUsers || [];
+                // 找出本時段有哪些人是當前輸入名單中的
+                const matched = inputNames.filter(name => bookedList.includes(name));
+                if (matched.length > 0) {
+                    totalBookedHeadcount += matched.length;
+                    totalFee += s.price * matched.length;
+                    bookedDetails.push({
+                        slot: s,
+                        names: matched,
+                        subtotal: s.price * matched.length
+                    });
+                }
+            });
+        
             document.getElementById('user-total-fee').innerText = totalFee.toLocaleString();
-            document.getElementById('user-booked-count').innerText = `${allUserMonthSlots.length} 場`;
-
-            if (allUserMonthSlots.length === 0) {
+            document.getElementById('user-booked-count').innerText = `${totalBookedHeadcount} 人次`;
+        
+            if (bookedDetails.length === 0) {
                 bookedContainer.innerHTML = `<p class="text-slate-400 text-center py-5 text-xs sm:text-sm">本月尚未報名任何時段</p>`;
             } else {
-                bookedContainer.innerHTML = allUserMonthSlots.map(s => {
+                bookedContainer.innerHTML = bookedDetails.map(item => {
+                    const s = item.slot;
                     const isPast = s.date < todayStr;
                     return `
                         <div class="pt-3 first:pt-0 flex items-center justify-between">
@@ -664,7 +686,7 @@
                                     <span class="text-indigo-600 mr-1">[${s.courseName}]</span>${s.date} <span class="font-semibold text-slate-500">(${s.time})</span>
                                     ${isPast ? '<span class="text-[10px] text-slate-400 ml-1 font-normal">[已結束]</span>' : ''}
                                 </p>
-                                <span class="text-xs text-slate-500 font-medium">費用：NT$ ${s.price}</span>
+                                <span class="text-xs text-slate-500 font-medium">學員：${item.names.join('、')} (${item.names.length}人) | 小計：NT$ ${item.subtotal}</span>
                             </div>
                             ${!isPast ? `
                                 <button onclick="cancelBooking('${s.id}')" class="text-rose-500 hover:text-rose-700 text-xs font-bold px-2 py-1 rounded hover:bg-rose-50 transition">取消</button>
@@ -675,77 +697,123 @@
             }
         }
 
-        async function bookSlot(slotId) {
-            const userName = document.getElementById('user-name-input').value.trim();
-            if (!userName) return alert('請先輸入預約人姓名！');
+        // 1. 解析姓名輸入字串（支援半形/全形逗號、頓號、斜線、空白）
+        function parseInputNames() {
+            const rawInput = document.getElementById('user-name-input').value.trim();
+            if (!rawInput) return [];
 
+            // 使用正規表達式切分多個姓名
+            const names = rawInput.split(/[,，、\n\r/ ]+/)
+                .map(n => n.trim())
+                .filter(n => n.length > 0);
+
+            // 去除重複輸入的名字
+            return Array.from(new Set(names));
+        }
+
+        // 2. 單場報名：自動支援多名額預約
+        async function bookSlot(slotId) {
+            const inputNames = parseInputNames();
+            if (inputNames.length === 0) return alert('請先輸入預約人姓名！');
+        
             const target = slots.find(s => s.id === slotId);
             if (!target) return;
-
-            const updatedUsers = [...(target.bookedUsers || []), userName];
-
+        
+            const currentBooked = target.bookedUsers || [];
+            const remaining = target.capacity - currentBooked.length;
+        
+            // 檢查剩餘名額是否足夠
+            if (inputNames.length > remaining) {
+                return alert(`名額不足！此時段僅剩 ${remaining} 個名額，您輸入了 ${inputNames.length} 位姓名（${inputNames.join(', ')}）。`);
+            }
+        
+            // 檢查是否有已經報名過的姓名
+            const duplicateNames = inputNames.filter(name => currentBooked.includes(name));
+            if (duplicateNames.length > 0) {
+                return alert(`以下人員已在報名名單中，請勿重複報名：${duplicateNames.join(', ')}`);
+            }
+        
+            const updatedUsers = [...currentBooked, ...inputNames];
+        
             const { error } = await supabaseClient
                 .from('slots')
                 .update({ booked_users: updatedUsers })
                 .eq('id', slotId);
-
+        
             if (error) return alert('預約失敗：' + error.message);
+        
+            alert(`成功預約 ${inputNames.length} 位（${inputNames.join('、')}）！`);
             await fetchSlotsFromSupabase();
         }
 
-        async function bookAllCourseSlots(courseName) {
-            const userName = document.getElementById('user-name-input').value.trim();
-            if (!userName) return alert('請先輸入預約人姓名！');
+        // 3. 取消報名：支援移除當前輸入的所有姓名
+        async function cancelBooking(slotId) {
+            const inputNames = parseInputNames();
+            if (inputNames.length === 0) return alert('請先輸入預約人姓名！');
+        
+            const target = slots.find(s => s.id === slotId);
+            if (!target) return;
+        
+            const currentBooked = target.bookedUsers || [];
+            // 移除符合輸入姓名的名單
+            const updatedUsers = currentBooked.filter(u => !inputNames.includes(u));
+        
+            if (currentBooked.length === updatedUsers.length) {
+                return alert(`目前預約名單中無符合的姓名（${inputNames.join(', ')}）！`);
+            }
+        
+            const { error } = await supabaseClient
+                .from('slots')
+                .update({ booked_users: updatedUsers })
+                .eq('id', slotId);
+        
+            if (error) return alert('取消失敗：' + error.message);
+        
+            alert(`已為您取消預約！`);
+            await fetchSlotsFromSupabase();
+        }
 
+        // 4. 批次報名該課程：自動判斷多位名額
+        async function bookAllCourseSlots(courseName) {
+            const inputNames = parseInputNames();
+            if (inputNames.length === 0) return alert('請先輸入預約人姓名！');
+        
             const todayStr = getTodayString();
             const selectedMonth = document.getElementById('user-month-filter').value;
+            const countNeeded = inputNames.length;
+        
+            // 找出名額足夠容納這幾位、且這幾位皆未報名過的時段
+            const targetSlots = slots.filter(s => {
+                if (s.courseName !== courseName || !s.date.startsWith(selectedMonth) || s.date < todayStr) return false;
 
-            const targetSlots = slots.filter(s => 
-                s.courseName === courseName &&
-                s.date.startsWith(selectedMonth) &&
-                s.date >= todayStr &&
-                !(s.bookedUsers || []).includes(userName) &&
-                (s.bookedUsers || []).length < s.capacity
-            );
-
+                const currentBooked = s.bookedUsers || [];
+                const remaining = s.capacity - currentBooked.length;
+                const hasAlreadyBooked = inputNames.some(name => currentBooked.includes(name));
+            
+                return !hasAlreadyBooked && remaining >= countNeeded;
+            });
+        
             if (targetSlots.length === 0) {
-                return alert(`目前當月份沒有可供批次報名的「${courseName}」時段！`);
+                return alert(`目前當月份沒有足夠容納 ${countNeeded} 位的「${courseName}」時段！`);
             }
-
-            if (!confirm(`確定要一次報名 ${targetSlots.length} 個「${courseName}」的時段嗎？`)) return;
-
+        
+            if (!confirm(`確定要為 ${countNeeded} 位（${inputNames.join('、')}）一次報名 ${targetSlots.length} 個「${courseName}」的時段嗎？`)) return;
+        
             try {
                 for (const slot of targetSlots) {
-                    const updatedUsers = [...(slot.bookedUsers || []), userName];
+                    const updatedUsers = [...(slot.bookedUsers || []), ...inputNames];
                     await supabaseClient
                         .from('slots')
                         .update({ booked_users: updatedUsers })
                         .eq('id', slot.id);
                 }
-
+            
                 alert(`已成功批次報名 ${targetSlots.length} 場「${courseName}」課程！`);
                 await fetchSlotsFromSupabase();
             } catch (err) {
                 alert('批次報名發生錯誤：' + err.message);
             }
         }
-
-        async function cancelBooking(slotId) {
-            const userName = document.getElementById('user-name-input').value.trim();
-            const target = slots.find(s => s.id === slotId);
-            if (!target) return;
-
-            const updatedUsers = (target.bookedUsers || []).filter(u => u !== userName);
-
-            const { error } = await supabaseClient
-                .from('slots')
-                .update({ booked_users: updatedUsers })
-                .eq('id', slotId);
-
-            if (error) return alert('取消失敗：' + error.message);
-            await fetchSlotsFromSupabase();
-        }
-
         // ======================= 管理員端邏輯 =======================
         function initTimeOptions() {
             const startHour = document.getElementById('admin-start-hour');
